@@ -1,0 +1,284 @@
+/* ══════════════════════════════════════════
+   Fragansys — Paleta y base
+   ══════════════════════════════════════════ */
+:root{
+    --dorado:       #c69a4c;
+    --dorado-oscuro:#a87e34;
+    --dorado-claro: #f4ead2;
+    --negro:        #1b1b1b;
+    --negro-2:      #232323;
+    --crema:        #faf7f0;
+    --crema-2:      #f1ebdb;
+    --borde:        #e7dfc7;
+    --texto:        #2b2620;
+    --texto-suave:  #8a7f68;
+}
+
+*, *::before, *::after{ box-sizing:border-box; }
+
+body{
+    background: var(--crema);
+    font-family:'Poppins', sans-serif;
+    color: var(--texto);
+    margin:0;
+}
+
+h1,h2,h3,h4,.brand,.serif{ font-family:'Playfair Display', serif; }
+
+a{ text-decoration:none; }
+
+/* ── Layout general ── */
+.app-shell{ display:flex; min-height:100vh; }
+
+/* ── Sidebar ── */
+.sidebar{
+    width:230px;
+    flex-shrink:0;
+    background: linear-gradient(180deg, var(--negro) 0%, var(--negro-2) 100%);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:sticky;
+    top:0;
+}
+
+.sidebar-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:24px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo{
+    width:38px; height:38px;
+    border:2px solid var(--dorado);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--dorado);
+    font-size:1.1rem;
+    font-weight:700;
+    flex-shrink:0;
+}
+
+.sidebar-brand-text .brand{
+    color:#fff;
+    font-size:1.05rem;
+    font-weight:700;
+    line-height:1.1;
+}
+.sidebar-brand-text .sub{
+    color:var(--dorado);
+    font-size:0.62rem;
+    letter-spacing:2px;
+    font-weight:600;
+}
+
+.sidebar-nav{ flex:1; padding:18px 14px; overflow-y:auto; }
+
+.sidebar-nav .nav-link{
+    color:#a89a7a;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    border-radius:8px;
+    font-size:0.86rem;
+    font-weight:500;
+    margin-bottom:4px;
+    transition: background .18s, color .18s;
+    cursor:pointer;
+}
+.sidebar-nav .nav-link i{ width:18px; text-align:center; font-size:0.9rem; }
+
+.sidebar-nav .nav-link:hover{
+    background: rgba(255,255,255,0.06);
+    color:#f1ead9;
+}
+
+.sidebar-nav .nav-link.active{
+    background: linear-gradient(135deg, var(--dorado) 0%, var(--dorado-oscuro) 100%);
+    color:#1b1608;
+    font-weight:600;
+    box-shadow:0 4px 14px rgba(198,154,76,0.35);
+}
+
+.sidebar-footer{
+    padding:16px 20px 20px;
+    border-top:1px solid rgba(255,255,255,0.08);
+}
+.sidebar-footer .nombre{
+    color:#e9e2cf;
+    font-size:0.8rem;
+    font-weight:500;
+    margin-bottom:4px;
+}
+.sidebar-footer a{
+    color:var(--dorado);
+    font-size:0.78rem;
+    font-weight:600;
+}
+.sidebar-footer a:hover{ color:#e0b968; }
+
+/* ── Contenido principal ── */
+.contenido{
+    flex:1;
+    padding:32px 36px;
+    min-width:0;
+}
+
+.page-header{ margin-bottom:24px; }
+.page-header h1{
+    font-size:1.7rem;
+    font-weight:700;
+    color:var(--texto);
+    margin:0;
+}
+.page-header .sub{
+    color:var(--texto-suave);
+    font-size:0.88rem;
+    margin-top:2px;
+}
+
+/* ── Tarjetas de estadísticas ── */
+.stat-card{
+    background:#fff;
+    border:1px solid var(--borde);
+    border-radius:12px;
+    padding:18px 20px;
+    height:100%;
+}
+.stat-card .label{
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    font-size:0.68rem;
+    font-weight:600;
+    color:var(--dorado-oscuro);
+    margin-bottom:10px;
+}
+.stat-card .valor{
+    font-family:'Playfair Display', serif;
+    font-size:1.9rem;
+    font-weight:700;
+    color:var(--texto);
+    line-height:1;
+}
+.stat-card .extra{
+    font-size:0.76rem;
+    color:var(--texto-suave);
+    margin-top:6px;
+}
+.stat-card.oscura{
+    background: var(--negro);
+    border-color: var(--negro);
+}
+.stat-card.oscura .label{ color:var(--dorado); }
+.stat-card.oscura .valor{ color:var(--dorado); }
+
+/* ── Paneles ── */
+.panel{
+    background:#fff;
+    border:1px solid var(--borde);
+    border-radius:12px;
+    padding:20px 22px;
+    height:100%;
+}
+.panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:14px;
+}
+.panel-header h5{
+    font-size:0.95rem;
+    font-weight:600;
+    color:var(--texto);
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.btn-dorado-outline{
+    border:1.5px solid var(--dorado);
+    color:var(--dorado-oscuro);
+    background:#fff;
+    font-size:0.76rem;
+    font-weight:600;
+    padding:5px 14px;
+    border-radius:7px;
+    transition:all .18s;
+}
+.btn-dorado-outline:hover{
+    background:var(--dorado);
+    color:#fff;
+}
+.btn-dorado{
+    border:none;
+    background:linear-gradient(135deg, var(--dorado) 0%, var(--dorado-oscuro) 100%);
+    color:#fff;
+    font-size:0.82rem;
+    font-weight:600;
+    padding:8px 16px;
+    border-radius:8px;
+    transition:transform .15s, box-shadow .15s;
+}
+.btn-dorado:hover{
+    transform:translateY(-1px);
+    box-shadow:0 6px 16px rgba(198,154,76,0.35);
+    color:#fff;
+}
+
+.tabla-simple{ width:100%; border-collapse:collapse; }
+.tabla-simple thead th{
+    text-align:left;
+    text-transform:uppercase;
+    font-size:0.68rem;
+    letter-spacing:0.5px;
+    color:var(--texto-suave);
+    font-weight:600;
+    padding:8px 6px;
+    border-bottom:1px solid var(--borde);
+}
+.tabla-simple tbody td{
+    padding:10px 6px;
+    font-size:0.85rem;
+    border-bottom:1px solid #f4f0e6;
+    color:var(--texto);
+}
+.tabla-simple tbody tr:last-child td{ border-bottom:none; }
+.tabla-simple tbody tr:hover{ background:var(--crema-2); }
+
+.dato-alerta{ color:#c0522e; font-weight:600; }
+.vacio{
+    text-align:center;
+    color:var(--texto-suave);
+    font-size:0.85rem;
+    padding:28px 10px;
+}
+
+/* ── Formularios (para módulos futuros) ── */
+.form-control, .form-select{
+    border-radius:8px;
+    border:1px solid var(--borde);
+    font-size:0.875rem;
+    padding:8px 12px;
+}
+.form-control:focus, .form-select:focus{
+    border-color:var(--dorado);
+    box-shadow:0 0 0 3px rgba(198,154,76,0.15);
+}
+label{
+    font-size:0.8rem;
+    font-weight:500;
+    color:var(--texto);
+    margin-bottom:4px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px){
+    .app-shell{ flex-direction:column; }
+    .sidebar{ width:100%; min-height:auto; position:relative; }
+    .sidebar-nav{ display:flex; flex-wrap:wrap; gap:6px; }
+    .sidebar-nav .nav-link{ margin-bottom:0; }
+    .contenido{ padding:20px; }
+}
