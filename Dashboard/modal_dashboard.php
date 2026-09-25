@@ -3,7 +3,7 @@ require_once("../sesion.php");
 require_once("../conexion.php");
 
 $productos_totales = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT COUNT(*) AS total, SUM(stock > 0 AND activo = 1) AS disponibles FROM productos"));
+    "SELECT COUNT(*) AS total, SUM(stock > 0) AS disponibles FROM productos WHERE activo = 1"));
 
 $combos_activos = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COUNT(*) AS total FROM combos WHERE activo = 1"));

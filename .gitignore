@@ -1,1 +1,7 @@
 ﻿conexion.php
+
+# Imagenes subidas: cada equipo prueba con las suyas, no se sincronizan
+uploads/catalogo/*
+uploads/productos/*
+!uploads/catalogo/.gitkeep
+!uploads/productos/.gitkeep

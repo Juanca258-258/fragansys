@@ -20,8 +20,11 @@ $es_admin        = ($rol === 'admin');
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/2.3.8/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
 <link rel="stylesheet" href="css/estilos.css">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 </head>
 <body>
 
@@ -91,10 +94,55 @@ function cargar_dashboard(){
     $("#contenedor_principal").load("Dashboard/modal_dashboard.php");
 }
 function cargar_productos(){
-    $("#contenedor_principal").load("Productos/modal_productos.php");
+    $("#contenedor_principal").load("Productos/modal_productos.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_productos')){
+            $('#tbl_productos').DataTable().destroy();
+        }
+        $('#tbl_productos').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
 }
+function modal_g_productos(){
+    $("#contenido_modal").load("Productos/modal_g_productos.php");
+    $("#modal_general").modal('show');
+}
+function modal_act_productos(id){
+    $.post("Productos/modal_act_productos.php", {id:id}, function(data){
+        $("#contenido_modal").html(data);
+        $("#modal_general").modal('show');
+    });
+}
+
 function cargar_catalogo(){
-    $("#contenedor_principal").load("Catalogo/modal_catalogo.php");
+    $("#contenedor_principal").load("Catalogo/modal_catalogo.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_catalogo')){
+            $('#tbl_catalogo').DataTable().destroy();
+        }
+        $('#tbl_catalogo').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
+}
+function modal_g_catalogo(){
+    $("#contenido_modal").load("Catalogo/modal_g_catalogo.php");
+    $("#modal_general").modal('show');
+}
+function modal_act_catalogo(id){
+    $.post("Catalogo/modal_act_catalogo.php", {id:id}, function(data){
+        $("#contenido_modal").html(data);
+        $("#modal_general").modal('show');
+    });
 }
 function cargar_combos(){
     $("#contenedor_principal").load("Combos/modal_combos.php");
