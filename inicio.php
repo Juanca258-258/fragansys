@@ -55,6 +55,9 @@ $es_admin        = ($rol === 'admin');
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_ventas(); return false;">
                 <i class="fa-solid fa-cart-shopping"></i> Ventas
             </a></li>
+            <li><a href="#" class="nav-link" onclick="activar(this); cargar_pedidos(); return false;">
+                <i class="fa-solid fa-truck-fast"></i> Pedidos
+            </a></li>
             <?php if ($es_admin): ?>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_configuracion(); return false;">
                 <i class="fa-solid fa-gear"></i> Configuración
@@ -150,6 +153,31 @@ function cargar_combos(){
 function cargar_ventas(){
     $("#contenedor_principal").load("Ventas/modal_ventas.php");
 }
+function cargar_pedidos(){
+    $("#contenedor_principal").load("Pedidos/modal_pedidos.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_pedidos')){
+            $('#tbl_pedidos').DataTable().destroy();
+        }
+        $('#tbl_pedidos').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json',
+                emptyTable: 'Aún no hay pedidos registrados.'
+            },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
+}
+function modal_detalle_pedido(id){
+    $.post("Pedidos/modal_detalle_pedido.php", {id:id}, function(data){
+        $("#contenido_modal").html(data);
+        $("#modal_general").modal('show');
+    });
+}
+
 function cargar_configuracion(){
     $("#contenedor_principal").load("Configuracion/modal_configuracion.php");
 }
