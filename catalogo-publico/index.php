@@ -69,12 +69,13 @@ require_once __DIR__ . '/back_catalogo_pub.php';
                 </ul>
             </div>
             
-            <!-- Botón de carrito superior opcional -->
-            <div class="d-none d-lg-block">
-                <button class="btn btn-outline-dark border-0">
-                    <i class="bi bi-cart3 fs-5"></i> <span id="badgeCarritoCount" class="badge bg-gold rounded-pill">0</span>
-                </button>
-            </div>
+           <!-- Botón de carrito superior en la barra de navegación -->
+<div class="d-none d-lg-block">
+    <a href="carrito/indexC.php" class="btn btn-outline-dark border-0 position-relative text-decoration-none">
+        <i class="bi bi-cart3 fs-5"></i> 
+        <span id="badgeCarritoCount" class="badge bg-gold rounded-pill">0</span>
+    </a>
+</div>
         </div>
     </nav>
 
@@ -97,58 +98,106 @@ require_once __DIR__ . '/back_catalogo_pub.php';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Lógica de Frontend -->
-    <script>
-        function actualizarPrecio(select) {
-            const opcion = select.options[select.selectedIndex];
-            const precio = parseFloat(opcion.getAttribute('data-precio')).toFixed(2);
-            
-            const tarjeta = select.closest('.card-body');
-            if (tarjeta) {
-                tarjeta.querySelector('.precio-display').textContent = '$' + precio;
-            }
+<script>
+    function actualizarPrecio(select) {
+        const opcion = select.options[select.selectedIndex];
+        const precio = parseFloat(opcion.getAttribute('data-precio')).toFixed(2);
+        
+        const tarjeta = select.closest('.card-body');
+        if (tarjeta) {
+            tarjeta.querySelector('.precio-display').textContent = '$' + precio;
         }
+    }
 
-        function agregarAlCarrito(btn) {
-            const tarjeta = btn.closest('.card-body');
-            const select = tarjeta.querySelector('.selector-variante');
-            const productoId = select.value;
+    function agregarAlCarrito(btn) {
+        const tarjeta = btn.closest('.card-body');
+        const select = tarjeta.querySelector('.selector-variante');
+        const productoId = select.value;
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Agregando...';
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Agregando...';
 
-            const formData = new FormData();
-            formData.append('accion', 'agregar');
-            formData.append('producto_id', productoId);
-            formData.append('cantidad', 1);
+        const formData = new FormData();
+        formData.append('accion', 'agregar');
+        formData.append('producto_id', productoId);
+        formData.append('cantidad', 1);
 
-            fetch('act_catalogo_pub.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    const badgeCarrito = document.getElementById('badgeCarritoCount');
-                    if (badgeCarrito) badgeCarrito.textContent = data.total_items;
-                    btn.innerHTML = '¡AGREGADO!';
-                    btn.classList.replace('btn-outline-light', 'btn-success');
-                    setTimeout(() => {
-                        btn.innerHTML = 'AGREGAR AL CARRITO';
-                        btn.classList.replace('btn-success', 'btn-outline-light');
-                        btn.disabled = false;
-                    }, 2000);
-                } else {
-                    alert('Atención: ' + data.message);
-                    btn.disabled = false;
+        fetch('act_catalogo_pub.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const badgeCarrito = document.getElementById('badgeCarritoCount');
+                if (badgeCarrito) badgeCarrito.textContent = data.total_items;
+                btn.innerHTML = '¡AGREGADO!';
+                btn.classList.replace('btn-outline-light', 'btn-success');
+                setTimeout(() => {
                     btn.innerHTML = 'AGREGAR AL CARRITO';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+                    btn.classList.replace('btn-success', 'btn-outline-light');
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                alert('Atención: ' + data.message);
                 btn.disabled = false;
                 btn.innerHTML = 'AGREGAR AL CARRITO';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            btn.disabled = false;
+            btn.innerHTML = 'AGREGAR AL CARRITO';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Sincronizar el badge del carrito al entrar o regresar a la página
+        actualizarBadgeCarrito();
+
+        // 2. Filtros de búsqueda y género
+        const inputBuscar = document.getElementById('buscarPerfume');
+        const selectGenero = document.getElementById('filtroGenero');
+        const tarjetas = document.querySelectorAll('.tarjeta-perfume');
+
+        function filtrar() {
+            const texto = inputBuscar ? inputBuscar.value.toLowerCase().trim() : '';
+            const genero = selectGenero ? selectGenero.value : '';
+
+            tarjetas.forEach(tarjeta => {
+                const nombre = tarjeta.getAttribute('data-nombre') || '';
+                const marca = tarjeta.getAttribute('data-marca') || '';
+                const gen = tarjeta.getAttribute('data-genero') || '';
+
+                const coincideTexto = nombre.includes(texto) || marca.includes(texto);
+                const coincideGenero = !genero || gen === genero;
+
+                tarjeta.style.display = (coincideTexto && coincideGenero) ? '' : 'none';
             });
         }
-    </script>
+
+        if (inputBuscar) inputBuscar.addEventListener('input', filtrar);
+        if (selectGenero) selectGenero.addEventListener('change', filtrar);
+    });
+
+    // Función para consultar la cantidad real de productos en el carrito
+    function actualizarBadgeCarrito() {
+        const formData = new FormData();
+        formData.append('accion', 'obtener_conteo');
+
+        fetch('carrito/act_carrito_pub.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            const badge = document.getElementById('badgeCarritoCount');
+            if (badge && data.total_items !== undefined) {
+                badge.textContent = data.total_items;
+            }
+        })
+        .catch(err => console.error('Error al sincronizar el contador del carrito:', err));
+    }
+</script>
 </body>
 </html>
