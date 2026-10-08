@@ -44,12 +44,15 @@ if ($accion === 'agregar') {
         exit;
     }
 
-    // Consultar el producto/variante junto con los datos de su catálogo de la BD
-    $sql = "SELECT p.id AS producto_id, p.nombre AS producto_nombre, p.contenido_ml, p.precio, p.stock, p.imagen AS producto_imagen,
-                   c.id AS catalogo_id, c.nombre AS perfume_nombre, c.marca, c.imagen AS catalogo_imagen
-            FROM productos p
-            INNER JOIN catalogo c ON p.catalogo_id = c.id
-            WHERE p.id = ? AND p.activo = 1 AND c.activo = 1";
+    // Consultar la presentación (decant o frasco) junto con los datos de su perfume.
+    // "producto_id" es el id de la presentación; "stock" son las unidades que alcanzan:
+    // frascos sellados para un frasco, o ml disponibles entre los ml del decant.
+    $sql = "SELECT pr.id AS producto_id, TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr.ml)) AS contenido_ml, pr.precio,
+                   IF(pr.tipo = 'frasco', pf.frascos_sellados, FLOOR(pf.ml_disponibles / pr.ml)) AS stock,
+                   pf.id AS catalogo_id, pf.nombre AS perfume_nombre, pf.marca, pf.imagen AS catalogo_imagen
+            FROM presentaciones pr
+            INNER JOIN perfumes pf ON pr.perfume_id = pf.id
+            WHERE pr.id = ? AND pr.activo = 1 AND pf.activo = 1";
 
     $stmt = $db->prepare($sql);
     if ($stmt) {
@@ -73,9 +76,8 @@ if ($accion === 'agregar') {
             }
 
             // Determinar imagen del producto
-            $imagen = !empty($item['producto_imagen']) 
-                ? '../uploads/productos/' . $item['producto_imagen']
-                : (!empty($item['catalogo_imagen']) ? '../uploads/catalogo/' . $item['catalogo_imagen'] : '../uploads/catalogo/default.png');
+            // Ruta relativa a la raíz del proyecto; cada vista le antepone su propio "../"
+            $imagen = $item['catalogo_imagen'];
 
             // Si el producto ya está en el carrito, sumar la cantidad
             if (isset($_SESSION['carrito'][$productoId])) {

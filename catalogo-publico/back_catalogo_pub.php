@@ -12,11 +12,10 @@ function obtenerCatalogoPublico($db) {$catalogo = array();
         return $catalogo;
     }
 
-    // 1. Consultar perfumes activos en la tabla `catalogo`
-    $sqlCatalogo = "SELECT id, nombre, marca, genero, familia_olfativa, 
-                           notas_salida, notas_corazon, notas_fondo, imagen 
-                    FROM catalogo 
-                    WHERE activo = 1 
+    // 1. Consultar perfumes activos en la tabla `perfumes`
+    $sqlCatalogo = "SELECT id, nombre, marca, genero, imagen, frascos_sellados, ml_disponibles
+                    FROM perfumes
+                    WHERE activo = 1
                     ORDER BY nombre ASC";
 
     $resultadoCatalogo = $db->query($sqlCatalogo);
@@ -25,16 +24,14 @@ function obtenerCatalogoPublico($db) {$catalogo = array();
         while ($perfume =$resultadoCatalogo->fetch_assoc()) {
             $catalogoId = (int)$perfume['id'];
 
-            // Ruta de la imagen del catálogo
-            $perfume['imagen_url'] = !empty($perfume['imagen']) 
-                ? '../uploads/catalogo/' . $perfume['imagen'] 
-                : '../uploads/catalogo/default.png';
+            // En la BD se guarda "uploads/perfumes/archivo", relativo a la raíz del proyecto
+            $perfume['imagen_url'] = '../' . $perfume['imagen'];
 
-            // 2. Consultar productos/variantes de la tabla `productos`
-            $sqlProductos = "SELECT id, nombre, descripcion, tipo, contenido_ml, precio, stock, imagen 
-                             FROM productos 
-                             WHERE catalogo_id = ? AND activo = 1 AND stock > 0
-                             ORDER BY contenido_ml ASC";
+            // 2. Consultar las presentaciones (decants y frasco) del perfume
+            $sqlProductos = "SELECT id, tipo, ml, precio
+                             FROM presentaciones
+                             WHERE perfume_id = ? AND activo = 1
+                             ORDER BY tipo = 'frasco', ml ASC";
 
             $stmt = $db->prepare($sqlProductos);
             if ($stmt) {$stmt->bind_param("i", $catalogoId);$stmt->execute();
@@ -42,9 +39,15 @@ function obtenerCatalogoPublico($db) {$catalogo = array();
 
                 $variantes = array();
                 while ($prod =$resProductos->fetch_assoc()) {
-                    $prod['imagen_url'] = !empty($prod['imagen']) 
-                        ? '../uploads/productos/' . $prod['imagen'] 
-                        : $perfume['imagen_url'];
+                    // Un decant sale de los ml del frasco abierto; un frasco, de los sellados
+                    $hayStock = $prod['tipo'] === 'frasco'
+                        ? $perfume['frascos_sellados'] >= 1
+                        : $perfume['ml_disponibles'] >= $prod['ml'];
+                    if (!$hayStock) {
+                        continue;
+                    }
+                    $prod['contenido_ml'] = (float)$prod['ml'];
+                    $prod['etiqueta'] = ($prod['tipo'] === 'frasco' ? 'Frasco completo ' : '') . $prod['contenido_ml'] . ' ml';
                     $variantes[] =$prod;
                 }
                 $stmt->close();

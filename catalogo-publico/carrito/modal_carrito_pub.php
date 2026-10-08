@@ -64,7 +64,7 @@ if (!isset($datosCarrito)) {
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center">
                                                 <div class="bg-light p-2 rounded-3 me-3 text-center" style="width: 65px; height: 65px; flex-shrink: 0;">
-                                                    <img src="<?= htmlspecialchars($item['imagen']) ?>" class="img-fluid h-100" style="object-fit: contain;" alt="<?= htmlspecialchars($item['nombre']) ?>">
+                                                    <img src="../../<?= htmlspecialchars($item['imagen']) ?>" class="img-fluid h-100" style="object-fit: contain;" alt="<?= htmlspecialchars($item['nombre']) ?>">
                                                 </div>
                                                 <div>
                                                     <h6 class="mb-1 font-serif text-brown fw-bold fs-6"><?= htmlspecialchars($item['nombre']) ?></h6>

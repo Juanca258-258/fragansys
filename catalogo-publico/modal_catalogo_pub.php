@@ -70,7 +70,7 @@
                                     <option value="<?= $variante['id'] ?>" 
                                             data-precio="<?= $variante['precio'] ?>" 
                                             <?= $index === 0 ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($variante['contenido_ml']) ?> ml
+                                        <?= htmlspecialchars($variante['etiqueta']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

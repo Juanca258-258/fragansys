@@ -3,7 +3,8 @@ require_once("../sesion.php");
 require_once("../conexion.php");
 
 $productos_totales = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT COUNT(*) AS total, SUM(stock > 0) AS disponibles FROM productos WHERE activo = 1"));
+    "SELECT COUNT(*) AS total, SUM(frascos_sellados > 0 OR ml_disponibles > 0) AS disponibles
+     FROM perfumes WHERE activo = 1"));
 
 $combos_activos = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COUNT(*) AS total FROM combos WHERE activo = 1"));
@@ -13,15 +14,14 @@ $ventas_registradas = mysqli_fetch_assoc(mysqli_query($conn,
      FROM ventas WHERE estado = 'completada'"));
 
 $stock_total = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT COALESCE(SUM(contenido_ml * stock), 0) AS total_ml
-     FROM productos WHERE activo = 1"));
+    "SELECT COALESCE(SUM(ml_disponibles + frascos_sellados * ml_por_frasco), 0) AS total_ml
+     FROM perfumes WHERE activo = 1"));
 
 $stock_bajo = mysqli_query($conn,
-    "SELECT p.nombre, c.marca, (p.contenido_ml * p.stock) AS ml_restantes
-     FROM productos p
-     LEFT JOIN catalogo c ON p.catalogo_id = c.id
-     WHERE p.activo = 1 AND (p.contenido_ml * p.stock) <= 15
-     ORDER BY ml_restantes ASC
+    "SELECT nombre, marca, frascos_sellados, ml_disponibles AS ml_restantes
+     FROM perfumes
+     WHERE activo = 1 AND ml_disponibles <= 15
+     ORDER BY frascos_sellados ASC, ml_disponibles ASC
      LIMIT 5");
 $filas_stock_bajo = mysqli_fetch_all($stock_bajo, MYSQLI_ASSOC);
 
@@ -40,7 +40,7 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-4 col-lg">
         <div class="stat-card">
-            <div class="label">Productos totales</div>
+            <div class="label">Perfumes</div>
             <div class="valor"><?= (int)$productos_totales['total'] ?></div>
             <div class="extra"><?= (int)$productos_totales['disponibles'] ?> disponibles</div>
         </div>
@@ -76,20 +76,21 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
         <div class="panel">
             <div class="panel-header">
                 <h5><i class="fa-solid fa-triangle-exclamation text-warning"></i> Stock bajo</h5>
-                <a href="#" class="btn-dorado-outline" onclick="ir_a('productos'); return false;">Ver todos</a>
+                <a href="#" class="btn-dorado-outline" onclick="ir_a('perfumes'); return false;">Ver todos</a>
             </div>
             <?php if (empty($filas_stock_bajo)): ?>
-                <div class="vacio"><i class="fa-solid fa-circle-check me-1"></i>No hay productos con stock bajo.</div>
+                <div class="vacio"><i class="fa-solid fa-circle-check me-1"></i>No hay perfumes con stock bajo.</div>
             <?php else: ?>
             <table class="tabla-simple">
                 <thead>
-                <tr><th>Producto</th><th>Marca</th><th class="text-end">ML restantes</th></tr>
+                <tr><th>Perfume</th><th>Marca</th><th class="text-end">Frascos sellados</th><th class="text-end">ML para decants</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($filas_stock_bajo as $p): ?>
                 <tr>
-                    <td><a href="#" onclick="ir_a('productos'); return false;"><?= htmlspecialchars($p['nombre']) ?></a></td>
-                    <td><?= htmlspecialchars($p['marca'] ?? '—') ?></td>
+                    <td><a href="#" onclick="ir_a('perfumes'); return false;"><?= htmlspecialchars($p['nombre']) ?></a></td>
+                    <td><?= htmlspecialchars($p['marca']) ?></td>
+                    <td class="text-end"><?= (int)$p['frascos_sellados'] ?></td>
                     <td class="text-end dato-alerta"><?= number_format($p['ml_restantes'], 0) ?> ml</td>
                 </tr>
                 <?php endforeach; ?>

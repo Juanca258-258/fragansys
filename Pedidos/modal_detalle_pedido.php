@@ -6,9 +6,13 @@ $pedido = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM pedidos WHERE id
 
 $detalle = mysqli_query($conn,
     "SELECT pd.*,
-            CASE WHEN pd.tipo='producto' THEN p.nombre ELSE c.nombre END AS nombre_item
+            CASE WHEN pd.tipo='presentacion'
+                 THEN CONCAT(pf.nombre, ' — ', IF(pr.tipo='frasco', 'Frasco ', 'Decant '),
+                             TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr.ml)), ' ml')
+                 ELSE c.nombre END AS nombre_item
      FROM pedido_detalle pd
-     LEFT JOIN productos p ON pd.producto_id = p.id
+     LEFT JOIN presentaciones pr ON pd.presentacion_id = pr.id
+     LEFT JOIN perfumes pf ON pr.perfume_id = pf.id
      LEFT JOIN combos c ON pd.combo_id = c.id
      WHERE pd.pedido_id = $id");
 

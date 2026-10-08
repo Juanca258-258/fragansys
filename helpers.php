@@ -11,12 +11,13 @@ function subir_imagen($campo, $carpeta_relativa) {
 
     $archivo = $_FILES[$campo];
 
-    if ($archivo['error'] !== UPLOAD_ERR_OK) {
-        return ['ok' => false, 'error' => 'Ocurrió un error al subir la imagen.'];
+    if ($archivo['error'] === UPLOAD_ERR_INI_SIZE || $archivo['error'] === UPLOAD_ERR_FORM_SIZE
+        || $archivo['size'] > 2 * 1024 * 1024) {
+        return ['ok' => false, 'error' => 'La imagen pesa más de 2 MB. Usa una imagen más ligera.'];
     }
 
-    if ($archivo['size'] > 3 * 1024 * 1024) {
-        return ['ok' => false, 'error' => 'La imagen no debe superar 3 MB.'];
+    if ($archivo['error'] !== UPLOAD_ERR_OK) {
+        return ['ok' => false, 'error' => 'Ocurrió un error al subir la imagen.'];
     }
 
     $permitidas = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];

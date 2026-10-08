@@ -43,11 +43,8 @@ $es_admin        = ($rol === 'admin');
             <li><a href="#" class="nav-link active" onclick="activar(this); cargar_dashboard(); return false;">
                 <i class="fa-solid fa-gauge-high"></i> Dashboard
             </a></li>
-            <li><a href="#" class="nav-link" onclick="activar(this); cargar_productos(); return false;">
-                <i class="fa-solid fa-box"></i> Productos
-            </a></li>
-            <li><a href="#" class="nav-link" onclick="activar(this); cargar_catalogo(); return false;">
-                <i class="fa-solid fa-book-open"></i> Catálogo
+            <li><a href="#" class="nav-link" onclick="activar(this); cargar_perfumes(); return false;">
+                <i class="fa-solid fa-spray-can-sparkles"></i> Perfumes
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_combos(); return false;">
                 <i class="fa-solid fa-gift"></i> Combos
@@ -99,53 +96,27 @@ function activar(el){
 function cargar_dashboard(){
     $("#contenedor_principal").load("Dashboard/modal_dashboard.php");
 }
-function cargar_productos(){
-    $("#contenedor_principal").load("Productos/modal_productos.php", function(){
-        if($.fn.DataTable.isDataTable('#tbl_productos')){
-            $('#tbl_productos').DataTable().destroy();
+function cargar_perfumes(){
+    $("#contenedor_principal").load("Perfumes/modal_perfumes.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_perfumes')){
+            $('#tbl_perfumes').DataTable().destroy();
         }
-        $('#tbl_productos').DataTable({
+        $('#tbl_perfumes').DataTable({
             language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
             pageLength: 25,
             order: [],
             responsive: true,
             dom: 'tip',
-            columnDefs: [{ orderable: false, targets: -1 }]
+            columnDefs: [{ orderable: false, targets: [0, 5, 6] }]
         });
     });
 }
-function modal_g_productos(){
-    $("#contenido_modal").load("Productos/modal_g_productos.php");
+function modal_g_perfumes(){
+    $("#contenido_modal").load("Perfumes/modal_g_perfumes.php");
     $("#modal_general").modal('show');
 }
-function modal_act_productos(id){
-    $.post("Productos/modal_act_productos.php", {id:id}, function(data){
-        $("#contenido_modal").html(data);
-        $("#modal_general").modal('show');
-    });
-}
-
-function cargar_catalogo(){
-    $("#contenedor_principal").load("Catalogo/modal_catalogo.php", function(){
-        if($.fn.DataTable.isDataTable('#tbl_catalogo')){
-            $('#tbl_catalogo').DataTable().destroy();
-        }
-        $('#tbl_catalogo').DataTable({
-            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
-            pageLength: 25,
-            order: [],
-            responsive: true,
-            dom: 'tip',
-            columnDefs: [{ orderable: false, targets: -1 }]
-        });
-    });
-}
-function modal_g_catalogo(){
-    $("#contenido_modal").load("Catalogo/modal_g_catalogo.php");
-    $("#modal_general").modal('show');
-}
-function modal_act_catalogo(id){
-    $.post("Catalogo/modal_act_catalogo.php", {id:id}, function(data){
+function modal_act_perfumes(id){
+    $.post("Perfumes/modal_act_perfumes.php", {id:id}, function(data){
         $("#contenido_modal").html(data);
         $("#modal_general").modal('show');
     });
