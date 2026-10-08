@@ -10,6 +10,7 @@ $error = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     require_once("conexion.php");
+    require_once("helpers.php");
     $usuario  = $_POST['usuario'];
     $password = $_POST['password'];
 
@@ -23,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['usuario']          = $user['usuario'];
         $_SESSION['nombre_completo']  = $user['nombre_completo'];
         $_SESSION['rol']              = $user['rol'];
+        registrar_movimiento($conn, 'Sesión', 'Iniciar sesión', "Inició sesión");
         header("Location: inicio.php");
         exit;
     } else {

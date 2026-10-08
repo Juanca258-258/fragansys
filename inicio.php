@@ -65,6 +65,9 @@ $es_admin        = ($rol === 'admin');
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_usuarios(); return false;">
                 <i class="fa-solid fa-users"></i> Usuarios
             </a></li>
+            <li><a href="#" class="nav-link" onclick="activar(this); cargar_historial(); return false;">
+                <i class="fa-solid fa-clock-rotate-left"></i> Historial
+            </a></li>
             <?php endif; ?>
         </ul>
 
@@ -183,6 +186,20 @@ function cargar_configuracion(){
 }
 function cargar_usuarios(){
     $("#contenedor_principal").load("Usuarios/modal_usuarios.php");
+}
+function cargar_historial(){
+    $("#contenedor_principal").load("Historial/modal_historial.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_historial')){
+            $('#tbl_historial').DataTable().destroy();
+        }
+        $('#tbl_historial').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip'
+        });
+    });
 }
 
 function ir_a(seccion){

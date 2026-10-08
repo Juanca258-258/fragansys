@@ -38,3 +38,10 @@ function subir_imagen($campo, $carpeta_relativa) {
 
     return ['ok' => true, 'archivo' => $carpeta_relativa . '/' . $nombre_final];
 }
+
+function registrar_movimiento($conn, $modulo, $accion, $descripcion, $usuario_id = null) {
+    $usuario_id = $usuario_id ?? ($_SESSION['id_usuario'] ?? null);
+    $stmt = $conn->prepare("INSERT INTO movimientos (usuario_id, modulo, accion, descripcion) VALUES (?,?,?,?)");
+    $stmt->bind_param("isss", $usuario_id, $modulo, $accion, $descripcion);
+    $stmt->execute();
+}

@@ -31,6 +31,8 @@ if ($accion == "guardar") {
     $stmt->bind_param("isssddis", $catalogo_id, $nombre, $descripcion, $tipo, $contenido_ml, $precio, $stock, $subida['archivo']);
     $stmt->execute();
 
+    registrar_movimiento($conn, 'Productos', 'Agregar', "Agregó el producto '$nombre' (stock: $stock, precio: $" . number_format($precio, 2) . ")");
+
     echo json_encode(['ok' => true]);
     exit;
 }
@@ -58,11 +60,23 @@ if ($accion == "actualizar") {
     }
     $imagen_final = $subida['archivo'] ?? $imagen_actual;
 
+    $anterior = mysqli_fetch_assoc(mysqli_query($conn, "SELECT stock, precio FROM productos WHERE id=$id"));
+
     $stmt = $conn->prepare("UPDATE productos SET
         catalogo_id=?, nombre=?, descripcion=?, tipo=?, contenido_ml=?, precio=?, stock=?, imagen=?
         WHERE id=?");
     $stmt->bind_param("isssddisi", $catalogo_id, $nombre, $descripcion, $tipo, $contenido_ml, $precio, $stock, $imagen_final, $id);
     $stmt->execute();
+
+    $cambios = [];
+    if ((int)$anterior['stock'] !== $stock) {
+        $cambios[] = "stock {$anterior['stock']} → $stock";
+    }
+    if ((float)$anterior['precio'] !== $precio) {
+        $cambios[] = "precio $" . number_format($anterior['precio'], 2) . " → $" . number_format($precio, 2);
+    }
+    $detalle = $cambios ? ' (' . implode(', ', $cambios) . ')' : '';
+    registrar_movimiento($conn, 'Productos', 'Editar', "Editó el producto '$nombre'$detalle");
 
     echo json_encode(['ok' => true]);
     exit;
@@ -70,7 +84,11 @@ if ($accion == "actualizar") {
 
 if ($accion == "eliminar") {
     $id = (int)$_POST['id'];
+    $fila = mysqli_fetch_assoc(mysqli_query($conn, "SELECT nombre FROM productos WHERE id=$id"));
     mysqli_query($conn, "UPDATE productos SET activo=0 WHERE id=$id");
+
+    registrar_movimiento($conn, 'Productos', 'Eliminar', "Eliminó el producto '{$fila['nombre']}'");
+
     echo json_encode(['ok' => true]);
     exit;
 }

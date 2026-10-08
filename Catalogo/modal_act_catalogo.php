@@ -37,7 +37,7 @@ $fila = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM catalogo WHERE id=
     <div class="mb-3">
         <label>Imagen actual</label><br>
         <?php if ($fila['imagen']): ?>
-            <img src="../<?= htmlspecialchars($fila['imagen']) ?>" alt="" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)">
+            <img src="<?= htmlspecialchars($fila['imagen']) ?>" alt="" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)">
         <?php else: ?>
             <span class="text-muted small">Sin imagen</span>
         <?php endif; ?>

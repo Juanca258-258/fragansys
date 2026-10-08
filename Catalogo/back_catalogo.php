@@ -28,6 +28,8 @@ if ($accion == "guardar") {
     $stmt->bind_param("ssss", $nombre, $marca, $genero, $subida['archivo']);
     $stmt->execute();
 
+    registrar_movimiento($conn, 'Catálogo', 'Agregar', "Agregó la fragancia '$nombre' de $marca");
+
     echo json_encode(['ok' => true]);
     exit;
 }
@@ -58,13 +60,19 @@ if ($accion == "actualizar") {
     $stmt->bind_param("ssssi", $nombre, $marca, $genero, $imagen_final, $id);
     $stmt->execute();
 
+    registrar_movimiento($conn, 'Catálogo', 'Editar', "Editó la fragancia '$nombre' de $marca");
+
     echo json_encode(['ok' => true]);
     exit;
 }
 
 if ($accion == "eliminar") {
     $id = (int)$_POST['id'];
+    $fila = mysqli_fetch_assoc(mysqli_query($conn, "SELECT nombre, marca FROM catalogo WHERE id=$id"));
     mysqli_query($conn, "UPDATE catalogo SET activo=0 WHERE id=$id");
+
+    registrar_movimiento($conn, 'Catálogo', 'Eliminar', "Eliminó la fragancia '{$fila['nombre']}' de {$fila['marca']}");
+
     echo json_encode(['ok' => true]);
     exit;
 }

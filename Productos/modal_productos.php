@@ -43,7 +43,7 @@ $result = mysqli_query($conn,
 <tr>
     <td style="width:48px">
         <?php if ($fila['imagen']): ?>
-            <img src="../<?= htmlspecialchars($fila['imagen']) ?>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)">
+            <img src="<?= htmlspecialchars($fila['imagen']) ?>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)">
         <?php else: ?>
             <div style="width:40px;height:40px;border-radius:8px;background:var(--crema-2);display:flex;align-items:center;justify-content:center;color:var(--texto-suave)">
                 <i class="fa-solid fa-flask"></i>
