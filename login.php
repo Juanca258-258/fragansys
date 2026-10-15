@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($user && password_verify($password, $user['password'])) {
         $_SESSION['id_usuario']       = $user['id'];
         $_SESSION['usuario']          = $user['usuario'];
-        $_SESSION['nombre_completo']  = $user['nombre_completo'];
+        $_SESSION['nombre_completo']  = trim($user['nombre'] . ' ' . $user['apellidos']);
         $_SESSION['rol']              = $user['rol'];
         registrar_movimiento($conn, 'Sesión', 'Iniciar sesión', "Inició sesión");
         header("Location: inicio.php");

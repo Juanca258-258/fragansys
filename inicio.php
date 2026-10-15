@@ -46,6 +46,11 @@ $es_admin        = ($rol === 'admin');
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_perfumes(); return false;">
                 <i class="fa-solid fa-spray-can-sparkles"></i> Perfumes
             </a></li>
+            <?php if ($es_admin): ?>
+            <li><a href="#" class="nav-link" onclick="activar(this); cargar_inventario(); return false;">
+                <i class="fa-solid fa-boxes-stacked"></i> Inventario
+            </a></li>
+            <?php endif; ?>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_combos(); return false;">
                 <i class="fa-solid fa-gift"></i> Combos
             </a></li>
@@ -81,7 +86,9 @@ $es_admin        = ($rol === 'admin');
 </div>
 
 <!-- Modal General -->
-<div class="modal fade" id="modal_general" tabindex="-1">
+<!-- data-bs-focus="false": sin esto Bootstrap le quita el foco a las alertas de SweetAlert y lo manda
+     al botón de cerrar, y el Enter que cierra la alerta cierra también la ventana. -->
+<div class="modal fade" id="modal_general" tabindex="-1" data-bs-focus="false">
   <div class="modal-dialog modal-lg">
     <div class="modal-content" id="contenido_modal"></div>
   </div>
@@ -121,11 +128,47 @@ function modal_act_perfumes(id){
         $("#modal_general").modal('show');
     });
 }
+function cargar_inventario(){
+    $("#contenedor_principal").load("Inventario/modal_inventario.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_inventario')){
+            $('#tbl_inventario').DataTable().destroy();
+        }
+        $('#tbl_inventario').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
+}
+function modal_g_inventario(){
+    $("#contenido_modal").load("Inventario/modal_g_inventario.php");
+    $("#modal_general").modal('show');
+}
+
 function cargar_combos(){
     $("#contenedor_principal").load("Combos/modal_combos.php");
 }
 function cargar_ventas(){
-    $("#contenedor_principal").load("Ventas/modal_ventas.php");
+    $("#contenedor_principal").load("Ventas/modal_ventas.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_ventas')){
+            $('#tbl_ventas').DataTable().destroy();
+        }
+        $('#tbl_ventas').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
+}
+function modal_g_ventas(){
+    $("#contenido_modal").load("Ventas/modal_g_ventas.php");
+    $("#modal_general").modal('show');
 }
 function cargar_pedidos(){
     $("#contenedor_principal").load("Pedidos/modal_pedidos.php", function(){
@@ -156,7 +199,29 @@ function cargar_configuracion(){
     $("#contenedor_principal").load("Configuracion/modal_configuracion.php");
 }
 function cargar_usuarios(){
-    $("#contenedor_principal").load("Usuarios/modal_usuarios.php");
+    $("#contenedor_principal").load("Usuarios/modal_usuarios.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_usuarios')){
+            $('#tbl_usuarios').DataTable().destroy();
+        }
+        $('#tbl_usuarios').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: -1 }]
+        });
+    });
+}
+function modal_g_usuarios(){
+    $("#contenido_modal").load("Usuarios/modal_g_usuarios.php");
+    $("#modal_general").modal('show');
+}
+function modal_act_usuarios(id){
+    $.post("Usuarios/modal_act_usuarios.php", {id:id}, function(data){
+        $("#contenido_modal").html(data);
+        $("#modal_general").modal('show');
+    });
 }
 function cargar_historial(){
     $("#contenedor_principal").load("Historial/modal_historial.php", function(){

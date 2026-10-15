@@ -65,6 +65,15 @@ $v = function ($campo, $defecto = '') use ($p) {
             <div class="form-text">Lo que queda del frasco abierto.</div>
         </div>
     </div>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label>Mínimo de frascos sellados</label>
+            <input type="number" name="stock_minimo_frascos" class="form-control" step="1" min="0" value="<?= $v('stock_minimo_frascos', '1') ?>" required>
+        </div>
+        <div class="col-md-8 mb-3 d-flex align-items-end">
+            <div class="form-text">Al llegar a este mínimo, el perfume aparece en "Stock bajo" del Dashboard. Las llegadas de mercancía se registran en el módulo Inventario.</div>
+        </div>
+    </div>
 
     <h6 class="fw-bold mt-2 mb-2" style="font-size:.85rem">Presentaciones a la venta</h6>
     <div class="mb-3">
@@ -89,7 +98,7 @@ $v = function ($campo, $defecto = '') use ($p) {
 </div>
 
 <div class="modal-footer">
-    <button class="btn-dorado" onclick="guardar_perfume()"><?= $es_nuevo ? 'Guardar' : 'Actualizar' ?></button>
+    <button class="btn-dorado" id="btn_guardar_perfume" onclick="guardar_perfume()"><?= $es_nuevo ? 'Guardar' : 'Actualizar' ?></button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -112,14 +121,17 @@ function guardar_perfume(){
     var form = document.getElementById('form_perfume');
     if(!form.reportValidity()) return;
 
+    var btn = $('#btn_guardar_perfume');
+    btn.prop('disabled', true);
+
     $.ajax({
         url: "Perfumes/back_perfumes.php",
         type: "POST",
         data: new FormData(form),
         processData: false,
         contentType: false,
-        success: function(resp){
-            var r = JSON.parse(resp);
+        dataType: "json",
+        success: function(r){
             if(r.ok){
                 $("#modal_general").modal('hide');
                 Swal.fire({title:"Guardado",icon:"success",timer:1300,showConfirmButton:false});
@@ -127,6 +139,12 @@ function guardar_perfume(){
             } else {
                 Swal.fire({title:"No se pudo guardar",text:r.error,icon:"warning",confirmButtonColor:"#d33",confirmButtonText:"Aceptar"});
             }
+        },
+        error: function(){
+            Swal.fire({title:"Error del servidor",text:"No se pudo guardar. Revisa el log de Apache para ver el detalle.",icon:"error",confirmButtonColor:"#d33",confirmButtonText:"Aceptar"});
+        },
+        complete: function(){
+            btn.prop('disabled', false);
         }
     });
 }

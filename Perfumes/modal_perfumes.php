@@ -44,7 +44,7 @@ while ($pr = mysqli_fetch_assoc($res)) {
 </thead>
 <tbody>
 <?php foreach ($perfumes as $p) {
-    $ml_bajo = $p['ml_disponibles'] <= 15;
+    $frascos_bajo = $p['frascos_sellados'] <= $p['stock_minimo_frascos'];
 ?>
 <tr>
     <td style="width:48px">
@@ -58,10 +58,11 @@ while ($pr = mysqli_fetch_assoc($res)) {
     </td>
     <td><span class="badge bg-secondary"><?= ucfirst($p['genero']) ?></span></td>
     <td>
-        <span class="badge bg-<?= $p['frascos_sellados'] > 0 ? 'success' : 'secondary' ?>"><?= (int)$p['frascos_sellados'] ?></span>
+        <span class="badge bg-<?= $frascos_bajo ? 'danger' : 'success' ?>"><?= (int)$p['frascos_sellados'] ?></span>
         <span class="small text-muted">de <?= (float)$p['ml_por_frasco'] ?> ml</span>
+        <div class="small text-muted">mín. <?= (int)$p['stock_minimo_frascos'] ?></div>
     </td>
-    <td class="<?= $ml_bajo ? 'dato-alerta' : '' ?>"><?= (float)$p['ml_disponibles'] ?> ml</td>
+    <td><?= (float)$p['ml_disponibles'] ?> ml</td>
     <td class="small">
         <?php foreach ($presentaciones[$p['id']] ?? [] as $pr): ?>
             <div>
@@ -73,8 +74,7 @@ while ($pr = mysqli_fetch_assoc($res)) {
     <td style="white-space:nowrap">
         <button class="btn btn-warning btn-sm" onclick="modal_act_perfumes(<?= $p['id'] ?>)">
             <i class="fa-solid fa-pen"></i> Editar
-        </button>
-        <button class="btn btn-info btn-sm" onclick="abrir_frasco(<?= $p['id'] ?>, <?= htmlspecialchars(json_encode($p['nombre'])) ?>, <?= (float)$p['ml_por_frasco'] ?>)"
+        </button>        <button class="btn btn-info btn-sm" onclick="abrir_frasco(<?= $p['id'] ?>, <?= htmlspecialchars(json_encode($p['nombre'])) ?>, <?= (float)$p['ml_por_frasco'] ?>)"
                 <?= $p['frascos_sellados'] > 0 ? '' : 'disabled title="No hay frascos sellados"' ?>>
             <i class="fa-solid fa-flask"></i> Abrir frasco
         </button>

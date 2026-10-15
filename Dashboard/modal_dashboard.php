@@ -18,9 +18,9 @@ $stock_total = mysqli_fetch_assoc(mysqli_query($conn,
      FROM perfumes WHERE activo = 1"));
 
 $stock_bajo = mysqli_query($conn,
-    "SELECT nombre, marca, frascos_sellados, ml_disponibles AS ml_restantes
+    "SELECT nombre, marca, frascos_sellados, stock_minimo_frascos, ml_disponibles AS ml_restantes
      FROM perfumes
-     WHERE activo = 1 AND ml_disponibles <= 15
+     WHERE activo = 1 AND frascos_sellados <= stock_minimo_frascos
      ORDER BY frascos_sellados ASC, ml_disponibles ASC
      LIMIT 5");
 $filas_stock_bajo = mysqli_fetch_all($stock_bajo, MYSQLI_ASSOC);
@@ -90,8 +90,8 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
                 <tr>
                     <td><a href="#" onclick="ir_a('perfumes'); return false;"><?= htmlspecialchars($p['nombre']) ?></a></td>
                     <td><?= htmlspecialchars($p['marca']) ?></td>
-                    <td class="text-end"><?= (int)$p['frascos_sellados'] ?></td>
-                    <td class="text-end dato-alerta"><?= number_format($p['ml_restantes'], 0) ?> ml</td>
+                    <td class="text-end dato-alerta"><?= (int)$p['frascos_sellados'] ?> <span class="small text-muted">(mín. <?= (int)$p['stock_minimo_frascos'] ?>)</span></td>
+                    <td class="text-end"><?= number_format($p['ml_restantes'], 0) ?> ml</td>
                 </tr>
                 <?php endforeach; ?>
                 </tbody>

@@ -8,6 +8,18 @@ function responder($ok, $error = null) {
     exit;
 }
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+set_exception_handler(function ($e) {
+    error_log($e);
+    responder(false, 'Error en la base de datos: ' . $e->getMessage());
+});
+
+function descartar_imagen_nueva($archivo) {
+    if ($archivo) {
+        @unlink(__DIR__ . '/../' . $archivo);
+    }
+}
+
 function ml_texto($ml) {
     return (float)$ml . ' ml';
 }
@@ -20,6 +32,7 @@ function leer_formulario() {
         'ml_por_frasco'    => (float)($_POST['ml_por_frasco'] ?? 0),
         'frascos_sellados' => (int)($_POST['frascos_sellados'] ?? 0),
         'ml_disponibles'   => (float)($_POST['ml_disponibles'] ?? 0),
+        'minimo_frascos'   => (int)($_POST['stock_minimo_frascos'] ?? 0),
         'precio_frasco'    => trim($_POST['precio_frasco'] ?? ''),
         'decants'          => [],
     ];
@@ -28,6 +41,7 @@ function leer_formulario() {
     if (!in_array($d['genero'], ['hombre', 'mujer', 'unisex'], true)) responder(false, 'Género no válido.');
     if ($d['ml_por_frasco'] <= 0) responder(false, 'Los ml por frasco deben ser mayores a 0.');
     if ($d['frascos_sellados'] < 0 || $d['ml_disponibles'] < 0) responder(false, 'El inventario no puede ser negativo.');
+    if ($d['minimo_frascos'] < 0) responder(false, 'El stock mínimo no puede ser negativo.');
 
     if ($d['precio_frasco'] !== '') {
         $d['precio_frasco'] = (float)$d['precio_frasco'];
@@ -91,14 +105,22 @@ if ($accion == "guardar") {
     $subida = subir_imagen('imagen', 'uploads/perfumes');
     if (!$subida['ok']) responder(false, $subida['error']);
 
-    $conn->begin_transaction();
-    $stmt = $conn->prepare("INSERT INTO perfumes (marca, nombre, genero, imagen, ml_por_frasco, frascos_sellados, ml_disponibles)
-                            VALUES (?,?,?,?,?,?,?)");
-    $stmt->bind_param("ssssdid", $d['marca'], $d['nombre'], $d['genero'], $subida['archivo'],
-                      $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles']);
-    $stmt->execute();
-    sincronizar_presentaciones($conn, $conn->insert_id, $d);
-    $conn->commit();
+    try {
+        $conn->begin_transaction();
+        $stmt = $conn->prepare("INSERT INTO perfumes (marca, nombre, genero, imagen, ml_por_frasco, frascos_sellados, ml_disponibles,
+                                                      stock_minimo_frascos)
+                                VALUES (?,?,?,?,?,?,?,?)");
+        $stmt->bind_param("ssssdidi", $d['marca'], $d['nombre'], $d['genero'], $subida['archivo'],
+                          $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles'],
+                          $d['minimo_frascos']);
+        $stmt->execute();
+        sincronizar_presentaciones($conn, $conn->insert_id, $d);
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        descartar_imagen_nueva($subida['archivo']);
+        throw $e;
+    }
 
     registrar_movimiento($conn, 'Perfumes', 'Agregar',
         "Agregó '{$d['nombre']}' de {$d['marca']} ({$d['frascos_sellados']} frascos, " . ml_texto($d['ml_disponibles']) . " para decants)");
@@ -116,14 +138,22 @@ if ($accion == "actualizar") {
     if (!$subida['ok']) responder(false, $subida['error']);
     $imagen_final = $subida['archivo'] ?? $anterior['imagen'];
 
-    $conn->begin_transaction();
-    $stmt = $conn->prepare("UPDATE perfumes SET marca=?, nombre=?, genero=?, imagen=?, ml_por_frasco=?, frascos_sellados=?, ml_disponibles=?
-                            WHERE id=?");
-    $stmt->bind_param("ssssdidi", $d['marca'], $d['nombre'], $d['genero'], $imagen_final,
-                      $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles'], $id);
-    $stmt->execute();
-    sincronizar_presentaciones($conn, $id, $d);
-    $conn->commit();
+    try {
+        $conn->begin_transaction();
+        $stmt = $conn->prepare("UPDATE perfumes SET marca=?, nombre=?, genero=?, imagen=?, ml_por_frasco=?, frascos_sellados=?, ml_disponibles=?,
+                                       stock_minimo_frascos=?
+                                WHERE id=?");
+        $stmt->bind_param("ssssdidii", $d['marca'], $d['nombre'], $d['genero'], $imagen_final,
+                          $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles'],
+                          $d['minimo_frascos'], $id);
+        $stmt->execute();
+        sincronizar_presentaciones($conn, $id, $d);
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        descartar_imagen_nueva($subida['archivo']);
+        throw $e;
+    }
 
     $cambios = [];
     if ((int)$anterior['frascos_sellados'] !== $d['frascos_sellados']) {

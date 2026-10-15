@@ -8,7 +8,7 @@ if ($_SESSION['rol'] !== 'admin') {
 }
 
 $result = mysqli_query($conn,
-    "SELECT m.*, u.nombre_completo, u.usuario
+    "SELECT m.*, CONCAT(u.nombre, ' ', u.apellidos) AS nombre_completo, u.usuario
      FROM movimientos m
      LEFT JOIN usuarios u ON m.usuario_id = u.id
      ORDER BY m.id DESC
@@ -19,6 +19,10 @@ $colores = [
     'Editar'         => 'warning text-dark',
     'Eliminar'       => 'danger',
     'Cambiar estado' => 'info text-dark',
+    'Entrada'        => 'success',
+    'Anular'         => 'danger',
+    'Cancelar'       => 'danger',
+    'Abrir frasco'   => 'primary',
     'Iniciar sesión' => 'secondary',
     'Cerrar sesión'  => 'secondary',
 ];
