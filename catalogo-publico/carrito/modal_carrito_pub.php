@@ -145,9 +145,85 @@ if (!isset($datosCarrito)) {
                     <span class="fs-3 fw-bold text-gold" id="cart-total">$<?= number_format($datosCarrito['subtotal'], 2) ?></span>
                 </div>
                 
-                <button type="button" class="btn text-white w-100 rounded-pill py-3 text-uppercase font-serif fw-bold shadow" style="background-color: #b58c5a; border: none; letter-spacing: 1px;">
+                <button type="button" class="btn text-white w-100 rounded-pill py-3 text-uppercase font-serif fw-bold shadow" style="background-color: #b58c5a; border: none; letter-spacing: 1px;" data-bs-toggle="modal" data-bs-target="#modalCheckout">
                     Proceder al Pago <i class="bi bi-credit-card ms-2"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Datos de Entrega -->
+    <div class="modal fade" id="modalCheckout" tabindex="-1" aria-labelledby="modalCheckoutLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <form id="formCheckout" onsubmit="realizarPedido(event)">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title font-serif text-brown fw-bold" id="modalCheckoutLabel">Datos de Entrega</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Paso 1: correo -->
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Correo electrónico *</label>
+                            <div class="input-group">
+                                <input type="email" name="cliente_correo" id="checkoutCorreo" class="form-control" maxlength="150" required>
+                                <button type="button" id="btnCambiarCorreo" class="btn btn-outline-secondary d-none" onclick="cambiarCorreo()">Cambiar</button>
+                            </div>
+                            <div class="form-text" id="ayudaCorreo">Si ya compraste antes, usaremos los datos que registraste.</div>
+                        </div>
+
+                        <!-- Cliente registrado y verificado -->
+                        <div id="bloqueClienteExistente" class="d-none">
+                            <div class="alert alert-light border mb-3">
+                                <div class="fw-bold text-brown mb-1">Hola, <span id="resumenNombre"></span></div>
+                                <div class="small text-muted" id="resumenTelefonoFila">Teléfono: <span id="resumenTelefono"></span></div>
+                                <div class="small text-muted" id="resumenDireccionFila">Dirección: <span id="resumenDireccion"></span></div>
+                            </div>
+                        </div>
+
+                        <!-- Datos a capturar (cliente nuevo, o registrado con datos incompletos) -->
+                        <div id="campoNombre" class="mb-3 d-none">
+                            <label class="form-label small text-muted">Nombre completo *</label>
+                            <input type="text" name="cliente_nombre" class="form-control" maxlength="120">
+                        </div>
+                        <div id="campoTelefono" class="mb-3 d-none">
+                            <label class="form-label small text-muted">Teléfono de contacto *</label>
+                            <input type="tel" name="telefono_contacto" class="form-control" maxlength="20">
+                        </div>
+                        <div id="campoDireccion" class="mb-3 d-none">
+                            <label class="form-label small text-muted">Dirección de entrega *</label>
+                            <textarea name="direccion_entrega" class="form-control" rows="2" maxlength="255"></textarea>
+                        </div>
+
+                        <!-- Contraseña: la crea un cliente nuevo o la escribe un cliente registrado -->
+                        <div id="campoPassword" class="mb-3 d-none">
+                            <label class="form-label small text-muted" id="etiquetaPassword">Contraseña *</label>
+                            <input type="password" name="password" id="checkoutPassword" class="form-control" minlength="6">
+                            <div class="form-text" id="ayudaPassword"></div>
+                        </div>
+                        <div id="campoConfirmarPassword" class="mb-3 d-none">
+                            <label class="form-label small text-muted">Confirma tu contraseña *</label>
+                            <input type="password" name="password_confirmar" class="form-control" minlength="6">
+                        </div>
+
+                        <div id="bloqueConfirmacion" class="d-none">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Notas para este pedido (opcional)</label>
+                                <textarea name="notas" class="form-control" rows="2" maxlength="255"></textarea>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                                <span class="font-serif fw-bold text-brown">Total a pagar</span>
+                                <span class="fs-5 fw-bold text-gold">$<?= number_format($datosCarrito['subtotal'], 2) ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-dark rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" id="btnConfirmarPedido" class="btn text-white rounded-pill px-4 fw-bold" style="background-color: #b58c5a; border: none;">
+                            Continuar
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

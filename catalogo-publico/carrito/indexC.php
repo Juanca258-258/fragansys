@@ -106,6 +106,146 @@ require_once __DIR__ . '/back_carrito_pub.php';
             })
             .catch(err => console.error('Error:', err));
         }
+
+        // Checkout por pasos:
+        //   'correo'    -> se busca si el correo ya está registrado
+        //   'password'  -> cliente registrado: escribe su contraseña para usar sus datos
+        //   'confirmar' -> se envía el pedido (cliente nuevo captura aquí sus datos y crea su contraseña)
+        let pasoCheckout = 'correo';
+
+        function mostrarCampo(id, visible) {
+            const bloque = document.getElementById(id);
+            bloque.classList.toggle('d-none', !visible);
+            bloque.querySelectorAll('input, textarea').forEach(el => el.required = visible);
+        }
+
+        function ocultarPasos() {
+            document.getElementById('bloqueClienteExistente').classList.add('d-none');
+            document.getElementById('bloqueConfirmacion').classList.add('d-none');
+            ['campoNombre', 'campoTelefono', 'campoDireccion', 'campoPassword', 'campoConfirmarPassword']
+                .forEach(id => mostrarCampo(id, false));
+        }
+
+        function cambiarCorreo() {
+            pasoCheckout = 'correo';
+            const correo = document.getElementById('checkoutCorreo');
+            correo.readOnly = false;
+            correo.focus();
+            document.getElementById('btnCambiarCorreo').classList.add('d-none');
+            document.getElementById('ayudaCorreo').classList.remove('d-none');
+            document.getElementById('checkoutPassword').value = '';
+            document.querySelector('[name="password_confirmar"]').value = '';
+            ocultarPasos();
+            document.getElementById('btnConfirmarPedido').textContent = 'Continuar';
+        }
+
+        function enviarCheckout(accion, formData, mensajeError) {
+            formData.append('accion', accion);
+            return fetch('act_carrito_pub.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .catch(err => {
+                console.error('Error:', err);
+                return { status: 'error', message: mensajeError };
+            });
+        }
+
+        function buscarCliente(btn) {
+            const formData = new FormData();
+            formData.append('cliente_correo', document.getElementById('checkoutCorreo').value);
+
+            enviarCheckout('buscar_cliente', formData, 'Ocurrió un error al verificar el correo.')
+            .then(data => {
+                btn.disabled = false;
+                if (data.status !== 'success') {
+                    alert(data.message);
+                    return;
+                }
+
+                document.getElementById('checkoutCorreo').readOnly = true;
+                document.getElementById('btnCambiarCorreo').classList.remove('d-none');
+                document.getElementById('ayudaCorreo').classList.add('d-none');
+
+                if (data.existe) {
+                    pasoCheckout = 'password';
+                    if (data.sin_password) {
+                        document.getElementById('etiquetaPassword').textContent = 'Crea una contraseña *';
+                        document.getElementById('ayudaPassword').textContent = 'Tu cuenta aún no tiene contraseña. Crea una (mínimo 6 caracteres) para usar tus datos guardados.';
+                    } else {
+                        document.getElementById('etiquetaPassword').textContent = 'Contraseña *';
+                        document.getElementById('ayudaPassword').textContent = 'Este correo ya está registrado. Ingresa tu contraseña para usar tus datos.';
+                    }
+                    mostrarCampo('campoPassword', true);
+                    mostrarCampo('campoConfirmarPassword', data.sin_password);
+                    btn.textContent = 'Continuar';
+                } else {
+                    pasoCheckout = 'confirmar';
+                    document.getElementById('etiquetaPassword').textContent = 'Crea una contraseña *';
+                    document.getElementById('ayudaPassword').textContent = 'Mínimo 6 caracteres. La usarás en tus próximas compras.';
+                    ['campoNombre', 'campoTelefono', 'campoDireccion', 'campoPassword', 'campoConfirmarPassword']
+                        .forEach(id => mostrarCampo(id, true));
+                    document.getElementById('bloqueConfirmacion').classList.remove('d-none');
+                    btn.textContent = 'Confirmar Pedido';
+                }
+            });
+        }
+
+        function verificarCliente(btn) {
+            const formData = new FormData();
+            formData.append('cliente_correo', document.getElementById('checkoutCorreo').value);
+            formData.append('password', document.getElementById('checkoutPassword').value);
+            formData.append('password_confirmar', document.querySelector('[name="password_confirmar"]').value);
+
+            enviarCheckout('verificar_cliente', formData, 'Ocurrió un error al verificar la contraseña.')
+            .then(data => {
+                btn.disabled = false;
+                if (data.status !== 'success') {
+                    alert(data.message);
+                    return;
+                }
+
+                pasoCheckout = 'confirmar';
+                mostrarCampo('campoPassword', false);
+                mostrarCampo('campoConfirmarPassword', false);
+                document.getElementById('resumenNombre').textContent = data.nombre;
+                document.getElementById('resumenTelefono').textContent = data.telefono;
+                document.getElementById('resumenDireccion').textContent = data.direccion;
+                document.getElementById('resumenTelefonoFila').classList.toggle('d-none', data.falta_telefono);
+                document.getElementById('resumenDireccionFila').classList.toggle('d-none', data.falta_direccion);
+                document.getElementById('bloqueClienteExistente').classList.remove('d-none');
+                mostrarCampo('campoTelefono', data.falta_telefono);
+                mostrarCampo('campoDireccion', data.falta_direccion);
+                document.getElementById('bloqueConfirmacion').classList.remove('d-none');
+                btn.textContent = 'Confirmar Pedido';
+            });
+        }
+
+        function realizarPedido(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnConfirmarPedido');
+            btn.disabled = true;
+
+            if (pasoCheckout === 'correo') {
+                buscarCliente(btn);
+                return;
+            }
+            if (pasoCheckout === 'password') {
+                verificarCliente(btn);
+                return;
+            }
+
+            enviarCheckout('realizar_pedido', new FormData(e.target), 'Ocurrió un error al registrar el pedido.')
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    location.href = '../index.php';
+                } else {
+                    btn.disabled = false;
+                }
+            });
+        }
     </script>
 </body>
 </html>
