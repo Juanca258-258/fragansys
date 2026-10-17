@@ -26,9 +26,14 @@ $result = mysqli_query($conn,
         <input type="text" class="form-control" placeholder="Buscar..."
                oninput="if($.fn.DataTable.isDataTable('#tbl_inventario')){$('#tbl_inventario').DataTable().search(this.value).draw();}">
     </div>
-    <button class="btn-dorado" onclick="modal_g_inventario()">
-        <i class="fa-solid fa-plus"></i> Registrar entrada
-    </button>
+    <div class="d-flex gap-2">
+        <button class="btn-dorado-outline" onclick="modal_ajuste_inventario()">
+            <i class="fa-solid fa-sliders"></i> Ajuste de ml
+        </button>
+        <button class="btn-dorado" onclick="modal_g_inventario()">
+            <i class="fa-solid fa-plus"></i> Registrar entrada
+        </button>
+    </div>
 </div>
 
 <table id="tbl_inventario" class="table table-hover align-middle">

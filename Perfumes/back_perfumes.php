@@ -30,8 +30,6 @@ function leer_formulario() {
         'nombre'           => trim($_POST['nombre'] ?? ''),
         'genero'           => $_POST['genero'] ?? 'unisex',
         'ml_por_frasco'    => (float)($_POST['ml_por_frasco'] ?? 0),
-        'frascos_sellados' => (int)($_POST['frascos_sellados'] ?? 0),
-        'ml_disponibles'   => (float)($_POST['ml_disponibles'] ?? 0),
         'minimo_frascos'   => (int)($_POST['stock_minimo_frascos'] ?? 0),
         'precio_frasco'    => trim($_POST['precio_frasco'] ?? ''),
         'decants'          => [],
@@ -40,7 +38,6 @@ function leer_formulario() {
     if ($d['marca'] === '' || $d['nombre'] === '') responder(false, 'Marca y nombre son obligatorios.');
     if (!in_array($d['genero'], ['hombre', 'mujer', 'unisex'], true)) responder(false, 'Género no válido.');
     if ($d['ml_por_frasco'] <= 0) responder(false, 'Los ml por frasco deben ser mayores a 0.');
-    if ($d['frascos_sellados'] < 0 || $d['ml_disponibles'] < 0) responder(false, 'El inventario no puede ser negativo.');
     if ($d['minimo_frascos'] < 0) responder(false, 'El stock mínimo no puede ser negativo.');
 
     if ($d['precio_frasco'] !== '') {
@@ -107,12 +104,10 @@ if ($accion == "guardar") {
 
     try {
         $conn->begin_transaction();
-        $stmt = $conn->prepare("INSERT INTO perfumes (marca, nombre, genero, imagen, ml_por_frasco, frascos_sellados, ml_disponibles,
-                                                      stock_minimo_frascos)
-                                VALUES (?,?,?,?,?,?,?,?)");
-        $stmt->bind_param("ssssdidi", $d['marca'], $d['nombre'], $d['genero'], $subida['archivo'],
-                          $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles'],
-                          $d['minimo_frascos']);
+        $stmt = $conn->prepare("INSERT INTO perfumes (marca, nombre, genero, imagen, ml_por_frasco, stock_minimo_frascos)
+                                VALUES (?,?,?,?,?,?)");
+        $stmt->bind_param("ssssdi", $d['marca'], $d['nombre'], $d['genero'], $subida['archivo'],
+                          $d['ml_por_frasco'], $d['minimo_frascos']);
         $stmt->execute();
         sincronizar_presentaciones($conn, $conn->insert_id, $d);
         $conn->commit();
@@ -122,8 +117,7 @@ if ($accion == "guardar") {
         throw $e;
     }
 
-    registrar_movimiento($conn, 'Perfumes', 'Agregar',
-        "Agregó '{$d['nombre']}' de {$d['marca']} ({$d['frascos_sellados']} frascos, " . ml_texto($d['ml_disponibles']) . " para decants)");
+    registrar_movimiento($conn, 'Perfumes', 'Agregar', "Agregó '{$d['nombre']}' de {$d['marca']}");
     responder(true);
 }
 
@@ -131,7 +125,7 @@ if ($accion == "actualizar") {
     $id = (int)$_POST['id'];
     $d  = leer_formulario();
 
-    $anterior = mysqli_fetch_assoc(mysqli_query($conn, "SELECT imagen, frascos_sellados, ml_disponibles FROM perfumes WHERE id=$id"));
+    $anterior = mysqli_fetch_assoc(mysqli_query($conn, "SELECT imagen FROM perfumes WHERE id=$id"));
     if (!$anterior) responder(false, 'El perfume no existe.');
 
     $subida = subir_imagen('imagen', 'uploads/perfumes');
@@ -140,12 +134,10 @@ if ($accion == "actualizar") {
 
     try {
         $conn->begin_transaction();
-        $stmt = $conn->prepare("UPDATE perfumes SET marca=?, nombre=?, genero=?, imagen=?, ml_por_frasco=?, frascos_sellados=?, ml_disponibles=?,
-                                       stock_minimo_frascos=?
+        $stmt = $conn->prepare("UPDATE perfumes SET marca=?, nombre=?, genero=?, imagen=?, ml_por_frasco=?, stock_minimo_frascos=?
                                 WHERE id=?");
-        $stmt->bind_param("ssssdidii", $d['marca'], $d['nombre'], $d['genero'], $imagen_final,
-                          $d['ml_por_frasco'], $d['frascos_sellados'], $d['ml_disponibles'],
-                          $d['minimo_frascos'], $id);
+        $stmt->bind_param("ssssdii", $d['marca'], $d['nombre'], $d['genero'], $imagen_final,
+                          $d['ml_por_frasco'], $d['minimo_frascos'], $id);
         $stmt->execute();
         sincronizar_presentaciones($conn, $id, $d);
         $conn->commit();
@@ -155,15 +147,7 @@ if ($accion == "actualizar") {
         throw $e;
     }
 
-    $cambios = [];
-    if ((int)$anterior['frascos_sellados'] !== $d['frascos_sellados']) {
-        $cambios[] = "frascos {$anterior['frascos_sellados']} → {$d['frascos_sellados']}";
-    }
-    if ((float)$anterior['ml_disponibles'] !== $d['ml_disponibles']) {
-        $cambios[] = "decants " . ml_texto($anterior['ml_disponibles']) . " → " . ml_texto($d['ml_disponibles']);
-    }
-    $detalle = $cambios ? ' (' . implode(', ', $cambios) . ')' : '';
-    registrar_movimiento($conn, 'Perfumes', 'Editar', "Editó '{$d['nombre']}' de {$d['marca']}$detalle");
+    registrar_movimiento($conn, 'Perfumes', 'Editar', "Editó '{$d['nombre']}' de {$d['marca']}");
     responder(true);
 }
 

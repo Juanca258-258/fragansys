@@ -85,4 +85,51 @@ if ($accion == "anular") {
     responder(true);
 }
 
+if ($accion == "ajustar_ml") {
+    $perfume_id = (int)($_POST['perfume_id'] ?? 0);
+    $ml_texto   = trim($_POST['ml_nuevo'] ?? '');
+    $ml_nuevo   = round((float)$ml_texto, 2);
+    $motivo     = $_POST['motivo'] ?? '';
+    $notas      = trim($_POST['notas'] ?? '');
+
+    $motivos = [
+        'inventario_inicial' => 'Inventario inicial',
+        'derrame'            => 'Derrame',
+        'evaporacion'        => 'Evaporación',
+        'conteo_fisico'      => 'Conteo físico',
+        'otro'               => 'Otro',
+    ];
+    if ($ml_texto === '' || $ml_nuevo < 0) responder(false, 'Escribe los ml reales (0 o más).');
+    if (!isset($motivos[$motivo])) responder(false, 'Selecciona el motivo del ajuste.');
+    if ($motivo === 'otro' && $notas === '') responder(false, 'Si el motivo es "Otro", explica en las notas qué pasó.');
+    // La descripción del Historial admite 255 caracteres; las notas van dentro de ella.
+    if (strlen($notas) > 120) responder(false, 'Las notas deben ser de máximo 120 caracteres.');
+
+    $conn->begin_transaction();
+    $perfume = mysqli_fetch_assoc(mysqli_query($conn,
+        "SELECT nombre, marca, ml_disponibles FROM perfumes WHERE id=$perfume_id AND activo=1 FOR UPDATE"));
+    if (!$perfume) {
+        $conn->rollback();
+        responder(false, 'Selecciona un perfume válido.');
+    }
+    $ml_antes = round((float)$perfume['ml_disponibles'], 2);
+    if ($ml_antes == $ml_nuevo) {
+        $conn->rollback();
+        responder(false, 'Los ml reales son iguales a los registrados; no hay nada que ajustar.');
+    }
+
+    $stmt = $conn->prepare("UPDATE perfumes SET ml_disponibles = ? WHERE id = ?");
+    $stmt->bind_param("di", $ml_nuevo, $perfume_id);
+    $stmt->execute();
+    $conn->commit();
+
+    $diferencia = $ml_nuevo - $ml_antes;
+    $signo      = $diferencia > 0 ? '+' : '';
+    $detalle_notas = $notas !== '' ? ". Notas: $notas" : '';
+    registrar_movimiento($conn, 'Inventario', 'Ajuste de ml',
+        "Ajuste de ml de '{$perfume['nombre']}' de {$perfume['marca']}: " . (float)$ml_antes . " → " . (float)$ml_nuevo
+        . " ml ($signo" . (float)$diferencia . " ml). Motivo: {$motivos[$motivo]}$detalle_notas");
+    responder(true);
+}
+
 responder(false, 'Acción no válida.');

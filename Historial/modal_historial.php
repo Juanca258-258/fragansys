@@ -20,6 +20,7 @@ $colores = [
     'Eliminar'       => 'danger',
     'Cambiar estado' => 'info text-dark',
     'Entrada'        => 'success',
+    'Ajuste de ml'   => 'warning text-dark',
     'Anular'         => 'danger',
     'Cancelar'       => 'danger',
     'Abrir frasco'   => 'primary',

@@ -147,6 +147,10 @@ function modal_g_inventario(){
     $("#contenido_modal").load("Inventario/modal_g_inventario.php");
     $("#modal_general").modal('show');
 }
+function modal_ajuste_inventario(){
+    $("#contenido_modal").load("Inventario/modal_ajuste_inventario.php");
+    $("#modal_general").modal('show');
+}
 
 function cargar_combos(){
     $("#contenedor_principal").load("Combos/modal_combos.php");

@@ -49,31 +49,31 @@ $v = function ($campo, $defecto = '') use ($p) {
         </div>
     </div>
 
-    <h6 class="fw-bold mt-2 mb-2" style="font-size:.85rem">Inventario</h6>
     <div class="row">
         <div class="col-md-4 mb-3">
             <label>Tamaño del frasco (ml)</label>
             <input type="number" name="ml_por_frasco" class="form-control" step="0.01" min="1" value="<?= $v('ml_por_frasco', '100') ?>" required>
         </div>
         <div class="col-md-4 mb-3">
-            <label>Frascos sellados</label>
-            <input type="number" name="frascos_sellados" class="form-control" step="1" min="0" value="<?= $v('frascos_sellados', '0') ?>" required>
-        </div>
-        <div class="col-md-4 mb-3">
-            <label>ml para decants</label>
-            <input type="number" name="ml_disponibles" class="form-control" step="0.01" min="0" value="<?= $v('ml_disponibles', '0') ?>" required>
-            <div class="form-text">Lo que queda del frasco abierto.</div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-4 mb-3">
             <label>Mínimo de frascos sellados</label>
             <input type="number" name="stock_minimo_frascos" class="form-control" step="1" min="0" value="<?= $v('stock_minimo_frascos', '1') ?>" required>
         </div>
-        <div class="col-md-8 mb-3 d-flex align-items-end">
-            <div class="form-text">Al llegar a este mínimo, el perfume aparece en "Stock bajo" del Dashboard. Las llegadas de mercancía se registran en el módulo Inventario.</div>
+        <div class="col-md-4 mb-3 d-flex align-items-end">
+            <div class="form-text">Al llegar a este mínimo, el perfume aparece en "Stock bajo" del Dashboard.</div>
         </div>
     </div>
+
+    <?php if (!$es_nuevo): ?>
+    <div class="mb-3 p-2 rounded" style="background:var(--crema-2)">
+        <div class="small">
+            <strong>Inventario actual:</strong>
+            <?= (int)$p['frascos_sellados'] ?> frasco(s) sellado(s) · <?= (float)$p['ml_disponibles'] ?> ml para decants
+        </div>
+        <div class="small text-muted">Los frascos se registran en Inventario → "Registrar entrada"; los ml con "Abrir frasco" o Inventario → "Ajuste de ml".</div>
+    </div>
+    <?php else: ?>
+    <div class="form-text mb-3">El perfume empieza sin inventario. Los frascos se registran después en Inventario → "Registrar entrada".</div>
+    <?php endif; ?>
 
     <h6 class="fw-bold mt-2 mb-2" style="font-size:.85rem">Presentaciones a la venta</h6>
     <div class="mb-3">
