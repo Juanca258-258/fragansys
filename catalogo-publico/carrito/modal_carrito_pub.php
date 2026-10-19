@@ -162,22 +162,31 @@ if (!isset($datosCarrito)) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
+                        <?php
+                        // Con sesión de cliente iniciada no se piden correo ni contraseña: se usan los datos de su cuenta
+                        $conSesion      = !empty($clienteSesion);
+                        $faltaTelefono  = $conSesion && empty($clienteSesion['telefono']);
+                        $faltaDireccion = $conSesion && empty($clienteSesion['direccion']);
+                        ?>
                         <!-- Paso 1: correo -->
-                        <div class="mb-3">
+                        <div class="mb-3<?= $conSesion ? ' d-none' : '' ?>">
                             <label class="form-label small text-muted">Correo electrónico *</label>
                             <div class="input-group">
-                                <input type="email" name="cliente_correo" id="checkoutCorreo" class="form-control" maxlength="150" required>
+                                <input type="email" name="cliente_correo" id="checkoutCorreo" class="form-control" maxlength="150" <?= $conSesion ? '' : 'required' ?>>
                                 <button type="button" id="btnCambiarCorreo" class="btn btn-outline-secondary d-none" onclick="cambiarCorreo()">Cambiar</button>
                             </div>
                             <div class="form-text" id="ayudaCorreo">Si ya compraste antes, usaremos los datos que registraste.</div>
                         </div>
 
                         <!-- Cliente registrado y verificado -->
-                        <div id="bloqueClienteExistente" class="d-none">
+                        <div id="bloqueClienteExistente" class="<?= $conSesion ? '' : 'd-none' ?>">
                             <div class="alert alert-light border mb-3">
-                                <div class="fw-bold text-brown mb-1">Hola, <span id="resumenNombre"></span></div>
-                                <div class="small text-muted" id="resumenTelefonoFila">Teléfono: <span id="resumenTelefono"></span></div>
-                                <div class="small text-muted" id="resumenDireccionFila">Dirección: <span id="resumenDireccion"></span></div>
+                                <div class="fw-bold text-brown mb-1">Hola, <span id="resumenNombre"><?= $conSesion ? htmlspecialchars($clienteSesion['nombre']) : '' ?></span></div>
+                                <?php if ($conSesion): ?>
+                                    <div class="small text-muted">Correo: <?= htmlspecialchars($clienteSesion['correo']) ?></div>
+                                <?php endif; ?>
+                                <div class="small text-muted<?= $faltaTelefono ? ' d-none' : '' ?>" id="resumenTelefonoFila">Teléfono: <span id="resumenTelefono"><?= $conSesion ? htmlspecialchars((string)$clienteSesion['telefono']) : '' ?></span></div>
+                                <div class="small text-muted<?= $faltaDireccion ? ' d-none' : '' ?>" id="resumenDireccionFila">Dirección: <span id="resumenDireccion"><?= $conSesion ? htmlspecialchars((string)$clienteSesion['direccion']) : '' ?></span></div>
                             </div>
                         </div>
 
@@ -186,13 +195,13 @@ if (!isset($datosCarrito)) {
                             <label class="form-label small text-muted">Nombre completo *</label>
                             <input type="text" name="cliente_nombre" class="form-control" maxlength="120">
                         </div>
-                        <div id="campoTelefono" class="mb-3 d-none">
+                        <div id="campoTelefono" class="mb-3<?= $faltaTelefono ? '' : ' d-none' ?>">
                             <label class="form-label small text-muted">Teléfono de contacto *</label>
-                            <input type="tel" name="telefono_contacto" class="form-control" maxlength="20">
+                            <input type="tel" name="telefono_contacto" class="form-control" maxlength="20" <?= $faltaTelefono ? 'required' : '' ?>>
                         </div>
-                        <div id="campoDireccion" class="mb-3 d-none">
+                        <div id="campoDireccion" class="mb-3<?= $faltaDireccion ? '' : ' d-none' ?>">
                             <label class="form-label small text-muted">Dirección de entrega *</label>
-                            <textarea name="direccion_entrega" class="form-control" rows="2" maxlength="255"></textarea>
+                            <textarea name="direccion_entrega" class="form-control" rows="2" maxlength="255" <?= $faltaDireccion ? 'required' : '' ?>></textarea>
                         </div>
 
                         <!-- Contraseña: la crea un cliente nuevo o la escribe un cliente registrado -->
@@ -206,7 +215,7 @@ if (!isset($datosCarrito)) {
                             <input type="password" name="password_confirmar" class="form-control" minlength="6">
                         </div>
 
-                        <div id="bloqueConfirmacion" class="d-none">
+                        <div id="bloqueConfirmacion" class="<?= $conSesion ? '' : 'd-none' ?>">
                             <div class="mb-3">
                                 <label class="form-label small text-muted">Notas para este pedido (opcional)</label>
                                 <textarea name="notas" class="form-control" rows="2" maxlength="255"></textarea>
@@ -219,8 +228,8 @@ if (!isset($datosCarrito)) {
                     </div>
                     <div class="modal-footer border-0 pt-0">
                         <button type="button" class="btn btn-outline-dark rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" id="btnConfirmarPedido" class="btn text-white rounded-pill px-4 fw-bold" style="background-color: #b58c5a; border: none;">
-                            Continuar
+                        <button type="submit" id="btnConfirmarPedido" class="btn text-white rounded-pill px-4 fw-bold" style="background-color: #b58c5a; border: none;" data-con-sesion="<?= $conSesion ? '1' : '0' ?>">
+                            <?= $conSesion ? 'Confirmar Pedido' : 'Continuar' ?>
                         </button>
                     </div>
                 </form>

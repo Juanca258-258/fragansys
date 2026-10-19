@@ -50,3 +50,18 @@ if (isset($conexion) && is_object($conexion)) {
 }
 
 $datosCarrito = obtenerCarritoPublico($dbConn);
+
+// Cliente con sesión iniciada: el checkout usa los datos de su cuenta sin pedir correo ni contraseña
+function obtenerClienteSesion($db) {
+    if (!$db || !isset($_SESSION['cliente_id'])) {
+        return null;
+    }
+    $clienteId = (int)$_SESSION['cliente_id'];
+    $stmt = $db->prepare("SELECT id, nombre, correo, telefono, direccion FROM clientes WHERE id = ? AND activo = 1");
+    $stmt->bind_param("i", $clienteId);
+    $stmt->execute();
+    $cliente = $stmt->get_result()->fetch_assoc();
+    return $cliente ? $cliente : null;
+}
+
+$clienteSesion = obtenerClienteSesion($dbConn);

@@ -12,6 +12,13 @@ function buscarClientePorCorreo($conn, $correo) {
     return $stmt->get_result()->fetch_assoc();
 }
 
+function buscarClientePorId($conn, $id) {
+    $stmt = $conn->prepare("SELECT id, nombre, correo, password, telefono, direccion, activo FROM clientes WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc();
+}
+
 $respuesta = array('status' => 'error', 'message' => 'Acción no válida');
 $accion = isset($_POST['accion']) ? trim($_POST['accion']) : '';
 
@@ -129,7 +136,14 @@ if ($accion === 'actualizar') {
     $notas  = isset($_POST['notas']) ? trim($_POST['notas']) : '';
     $notas  = $notas === '' ? null : $notas;
 
-    $cliente = filter_var($correo, FILTER_VALIDATE_EMAIL) ? buscarClientePorCorreo($conn, $correo) : null;
+    // Con sesión de cliente iniciada se usa su cuenta; el correo del formulario se ignora
+    $clienteSesionId = isset($_SESSION['cliente_id']) ? (int)$_SESSION['cliente_id'] : 0;
+    if ($clienteSesionId) {
+        $cliente = buscarClientePorId($conn, $clienteSesionId);
+        $correo  = $cliente ? $cliente['correo'] : '';
+    } else {
+        $cliente = filter_var($correo, FILTER_VALIDATE_EMAIL) ? buscarClientePorCorreo($conn, $correo) : null;
+    }
 
     // Cliente registrado: se usan sus datos guardados y solo se completan los que le falten.
     // Cliente nuevo: se toman todos los datos del formulario y se registra en clientes.
@@ -139,9 +153,12 @@ if ($accion === 'actualizar') {
     $postPassword  = isset($_POST['password']) ? $_POST['password'] : '';
     $postConfirmar = isset($_POST['password_confirmar']) ? $_POST['password_confirmar'] : '';
 
-    // Un cliente registrado solo puede comprar si verificó su contraseña en este checkout
-    $clienteVerificado = $cliente && isset($_SESSION['checkout_cliente_id'])
-                         && $_SESSION['checkout_cliente_id'] === (int)$cliente['id'];
+    // Un cliente registrado solo puede comprar si inició sesión o verificó su contraseña en este checkout
+    $clienteVerificado = $cliente && (
+                             $clienteSesionId === (int)$cliente['id']
+                             || (isset($_SESSION['checkout_cliente_id'])
+                                 && $_SESSION['checkout_cliente_id'] === (int)$cliente['id'])
+                         );
 
     if ($cliente) {
         $nombre    = $cliente['nombre'];
@@ -157,6 +174,8 @@ if ($accion === 'actualizar') {
 
     if (empty($_SESSION['carrito'])) {
         $respuesta['message'] = 'Tu carrito está vacío.';
+    } elseif ($clienteSesionId && !$cliente) {
+        $respuesta['message'] = 'Tu sesión ya no es válida. Inicia sesión de nuevo.';
     } elseif (!filter_var($correo, FILTER_VALIDATE_EMAIL)) {
         $respuesta['message'] = 'El correo electrónico no es válido.';
     } elseif ($cliente && !$cliente['activo']) {

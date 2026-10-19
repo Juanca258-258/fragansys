@@ -111,7 +111,9 @@ require_once __DIR__ . '/back_carrito_pub.php';
         //   'correo'    -> se busca si el correo ya está registrado
         //   'password'  -> cliente registrado: escribe su contraseña para usar sus datos
         //   'confirmar' -> se envía el pedido (cliente nuevo captura aquí sus datos y crea su contraseña)
-        let pasoCheckout = 'correo';
+        // Con sesión de cliente iniciada se empieza directo en 'confirmar' (sin correo ni contraseña)
+        const btnCheckout = document.getElementById('btnConfirmarPedido');
+        let pasoCheckout = (btnCheckout && btnCheckout.dataset.conSesion === '1') ? 'confirmar' : 'correo';
 
         function mostrarCampo(id, visible) {
             const bloque = document.getElementById(id);
@@ -240,7 +242,8 @@ require_once __DIR__ . '/back_carrito_pub.php';
             .then(data => {
                 alert(data.message);
                 if (data.status === 'success') {
-                    location.href = '../index.php';
+                    // Con sesión, el cliente va a sus pedidos para darle seguimiento
+                    location.href = btn.dataset.conSesion === '1' ? '../sesion-cliente/indexP.php' : '../index.php';
                 } else {
                     btn.disabled = false;
                 }
