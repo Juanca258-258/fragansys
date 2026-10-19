@@ -131,14 +131,24 @@ $rp_ml       = array_sum(array_column($r['inventario'], 'ml_disponibles'));
 <section class="rp-seccion" id="rp-ventas">
     <div class="rp-seccion-cab">
         <div class="rp-seccion-icono"><i class="fa-solid fa-sack-dollar"></i></div>
-        <div><h2>Ventas</h2><p>Mostrador y tienda en línea en el periodo</p></div>
+        <div><h2>Ventas</h2><p>Mostrador y pedidos en línea pagados en el periodo</p></div>
         <div class="rp-linea"></div>
     </div>
 
     <div class="row g-3 mb-3">
         <div class="col-md-6 col-xl-3"><div class="rp-kpi destacado">
             <div class="rp-kpi-icono"><i class="fa-solid fa-sack-dollar"></i></div>
-            <div><div class="rp-kpi-label">Total vendido</div><div class="rp-kpi-valor"><?= rp_dinero($r['resumen']['total']) ?></div></div>
+            <div>
+                <div class="rp-kpi-label">Total vendido</div>
+                <div class="rp-kpi-valor"><?= rp_dinero($r['resumen']['total']) ?></div>
+                <?php if ($r['pendientes_pago']['num'] > 0): ?>
+                <div class="rp-kpi-nota">
+                    <i class="fa-solid fa-hourglass-half"></i>
+                    + <?= rp_dinero($r['pendientes_pago']['total']) ?> en <?= $r['pendientes_pago']['num'] ?>
+                    pedido<?= $r['pendientes_pago']['num'] == 1 ? '' : 's' ?> pendiente<?= $r['pendientes_pago']['num'] == 1 ? '' : 's' ?> de pago
+                </div>
+                <?php endif; ?>
+            </div>
         </div></div>
         <div class="col-md-6 col-xl-3"><div class="rp-kpi">
             <div class="rp-kpi-icono"><i class="fa-solid fa-receipt"></i></div>

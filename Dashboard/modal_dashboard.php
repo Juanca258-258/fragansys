@@ -9,9 +9,19 @@ $productos_totales = mysqli_fetch_assoc(mysqli_query($conn,
 $combos_activos = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COUNT(*) AS total FROM combos WHERE activo = 1"));
 
+// Un pedido en línea cuenta como venta solo cuando está pagado; los pendientes se muestran aparte.
+$ventas_sql = "
+    SELECT cliente_nombre, total, fecha_venta AS fecha, 'Mostrador' AS origen FROM ventas WHERE estado = 'completada'
+    UNION ALL
+    SELECT cliente_nombre, total, fecha_pedido, 'En línea' FROM pedidos
+    WHERE estado_pago = 'pagado' AND estado_pedido <> 'cancelado'";
+
 $ventas_registradas = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT COUNT(*) AS total, COALESCE(SUM(total), 0) AS ingresos
-     FROM ventas WHERE estado = 'completada'"));
+    "SELECT COUNT(*) AS total, COALESCE(SUM(total), 0) AS ingresos FROM ($ventas_sql) t"));
+
+$pendientes_pago = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) AS num, COALESCE(SUM(total), 0) AS total FROM pedidos
+     WHERE estado_pago = 'pendiente' AND estado_pedido <> 'cancelado'"));
 
 $stock_total = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COALESCE(SUM(ml_disponibles + frascos_sellados * ml_por_frasco), 0) AS total_ml
@@ -25,11 +35,7 @@ $stock_bajo = mysqli_query($conn,
      LIMIT 5");
 $filas_stock_bajo = mysqli_fetch_all($stock_bajo, MYSQLI_ASSOC);
 
-$ultimas_ventas = mysqli_query($conn,
-    "SELECT id, cliente_nombre, total, fecha_venta
-     FROM ventas
-     ORDER BY fecha_venta DESC
-     LIMIT 5");
+$ultimas_ventas = mysqli_query($conn, "SELECT * FROM ($ventas_sql) t ORDER BY fecha DESC LIMIT 5");
 $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
 ?>
 <div class="page-header">
@@ -55,12 +61,19 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
         <div class="stat-card">
             <div class="label">Ventas registradas</div>
             <div class="valor"><?= (int)$ventas_registradas['total'] ?></div>
+            <div class="extra">Mostrador y pedidos pagados</div>
         </div>
     </div>
     <div class="col-6 col-md-4 col-lg">
         <div class="stat-card oscura">
             <div class="label">Ingresos estimados</div>
             <div class="valor">$<?= number_format($ventas_registradas['ingresos'], 2) ?></div>
+            <?php if ($pendientes_pago['num'] > 0): ?>
+            <div class="extra" style="color:#bfb39a">
+                + $<?= number_format($pendientes_pago['total'], 2) ?> pendientes de pago
+                (<?= $pendientes_pago['num'] ?> pedido<?= $pendientes_pago['num'] == 1 ? '' : 's' ?>)
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="col-6 col-md-4 col-lg">
@@ -111,12 +124,13 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
             <?php else: ?>
             <table class="tabla-simple">
                 <thead>
-                <tr><th>Cliente</th><th class="text-end">Total</th></tr>
+                <tr><th>Cliente</th><th>Origen</th><th class="text-end">Total</th></tr>
                 </thead>
                 <tbody>
                 <?php foreach ($filas_ultimas_ventas as $v): ?>
                 <tr>
                     <td><?= htmlspecialchars($v['cliente_nombre'] ?: 'Cliente sin nombre') ?></td>
+                    <td class="small text-muted"><?= $v['origen'] ?></td>
                     <td class="text-end fw-bold">$<?= number_format($v['total'], 2) ?></td>
                 </tr>
                 <?php endforeach; ?>

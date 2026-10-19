@@ -65,6 +65,12 @@ function obtener_reportes($conn, $desde, $hasta) {
         'total'    => (float)$res['total'],
         'promedio' => $res['num'] > 0 ? $res['total'] / $res['num'] : 0,
     ];
+    // Los pedidos en línea sin pagar no cuentan como venta; se informan aparte.
+    $res = mysqli_fetch_assoc(mysqli_query($conn,
+        "SELECT COUNT(*) AS num, COALESCE(SUM(total), 0) AS total FROM pedidos
+         WHERE estado_pago = 'pendiente' AND estado_pedido <> 'cancelado' AND fecha_pedido BETWEEN '$ini' AND '$fin'"));
+    $r['pendientes_pago'] = ['num' => (int)$res['num'], 'total' => (float)$res['total']];
+
     $r['por_metodo'] = mysqli_fetch_all(mysqli_query($conn,
         "SELECT metodo_pago, COUNT(*) AS num, SUM(total) AS total FROM ($ventas_sql) t GROUP BY metodo_pago ORDER BY total DESC"), MYSQLI_ASSOC);
     $r['por_origen'] = mysqli_fetch_all(mysqli_query($conn,

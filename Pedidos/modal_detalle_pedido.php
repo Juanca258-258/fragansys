@@ -1,5 +1,7 @@
 <?php
+require_once("../sesion.php");
 require_once("../conexion.php");
+require_once(__DIR__ . "/flujo_pedidos.php");
 $id = (int)$_POST['id'];
 
 $pedido = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM pedidos WHERE id=$id"));
@@ -16,15 +18,28 @@ $detalle = mysqli_query($conn,
      LEFT JOIN combos c ON pd.combo_id = c.id
      WHERE pd.pedido_id = $id");
 
-$etiquetas_estado = [
-    'nuevo'          => 'Nuevo',
-    'confirmado'     => 'Confirmado',
-    'en_preparacion' => 'En preparación',
-    'enviado'        => 'Enviado',
-    'entregado'      => 'Entregado',
-    'cancelado'      => 'Cancelado',
-];
+$estado     = $pedido['estado_pedido'];
+$cancelado  = $estado === 'cancelado';
+$siguiente  = siguiente_estado($estado);
+$paso_actual = array_search($estado, FLUJO_PEDIDO, true);
 ?>
+<style>
+.pasos-pedido { display:flex; margin:6px 0 4px; }
+.paso-pedido { flex:1; text-align:center; position:relative; font-size:.72rem; color:var(--texto-suave); }
+.paso-pedido::before {
+    content:''; position:absolute; top:13px; left:-50%; width:100%; height:2px; background:var(--borde); z-index:0;
+}
+.paso-pedido:first-child::before { display:none; }
+.paso-punto {
+    width:28px; height:28px; border-radius:50%; margin:0 auto 6px; position:relative; z-index:1;
+    display:flex; align-items:center; justify-content:center; font-size:.75rem;
+    background:#fff; border:2px solid var(--borde); color:var(--texto-suave);
+}
+.paso-pedido.hecho .paso-punto { background:var(--dorado-oscuro); border-color:var(--dorado-oscuro); color:#fff; }
+.paso-pedido.hecho::before, .paso-pedido.actual::before { background:var(--dorado-oscuro); }
+.paso-pedido.actual .paso-punto { background:var(--negro); border-color:var(--negro); color:var(--dorado); }
+.paso-pedido.actual { color:var(--texto); font-weight:600; }
+</style>
 <div class="modal-header">
     <h5 class="modal-title">Pedido #<?= $pedido['id'] ?></h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -75,37 +90,57 @@ $etiquetas_estado = [
 
     <hr>
 
-    <div class="row align-items-end">
-        <div class="col-md-7">
-            <label>Estado del pedido</label>
-            <select id="sel_estado_pedido" class="form-select">
-                <?php foreach ($etiquetas_estado as $valor => $etiqueta) { ?>
-                <option value="<?= $valor ?>" <?= $pedido['estado_pedido'] == $valor ? 'selected' : '' ?>><?= $etiqueta ?></option>
-                <?php } ?>
-            </select>
-        </div>
-        <div class="col-md-5">
-            <span class="small text-muted">Pago: <strong><?= ucfirst($pedido['estado_pago']) ?></strong></span>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <label class="mb-0">Estado del pedido</label>
+        <span class="small text-muted">Pago: <strong><?= ucfirst($pedido['estado_pago']) ?></strong></span>
     </div>
+
+    <?php if ($cancelado): ?>
+    <div class="p-3 rounded text-center" style="background:#fbe7e0; color:#9b3d1e">
+        <i class="fa-solid fa-ban me-1"></i> <strong>Pedido cancelado por el cliente.</strong> Ya no se puede avanzar.
+    </div>
+    <?php else: ?>
+    <div class="pasos-pedido">
+        <?php foreach (FLUJO_PEDIDO as $i => $paso):
+            $clase = $i < $paso_actual ? 'hecho' : ($i === $paso_actual ? 'actual' : ''); ?>
+        <div class="paso-pedido <?= $clase ?>">
+            <div class="paso-punto"><?= $i < $paso_actual ? '<i class="fa-solid fa-check"></i>' : $i + 1 ?></div>
+            <?= ETIQUETAS_ESTADO[$paso] ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php if ($pedido['estado_pago'] !== 'pagado' && $estado === 'nuevo'): ?>
+    <div class="small mt-2" style="color:#9b3d1e">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i> El pago de este pedido está <strong><?= $pedido['estado_pago'] ?></strong>. Revisa que esté pagado antes de confirmarlo.
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
 
 </div>
 
 <div class="modal-footer">
-    <button class="btn-dorado" onclick="actualizar_estado_pedido(<?= $pedido['id'] ?>)">Actualizar estado</button>
+    <?php if ($siguiente !== null && !$cancelado): ?>
+    <button class="btn-dorado" id="btn_avanzar_pedido"
+            onclick="avanzar_estado_pedido(<?= $pedido['id'] ?>, '<?= $estado ?>', <?= htmlspecialchars(json_encode(ETIQUETAS_ESTADO[$siguiente])) ?>)">
+        <i class="fa-solid fa-arrow-right me-1"></i> <?= ACCION_SIGUIENTE[$estado] ?>
+    </button>
+    <?php elseif ($estado === 'entregado'): ?>
+    <span class="small text-muted"><i class="fa-solid fa-circle-check me-1" style="color:#2f6b3b"></i> Pedido entregado. Proceso terminado.</span>
+    <?php endif; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-function actualizar_estado_pedido(id){
-    var estado = $('#sel_estado_pedido').val();
-    $.post("Pedidos/back_pedidos.php", { accion:"actualizar_estado", id:id, estado_pedido:estado }, function(resp){
+function avanzar_estado_pedido(id, estado_actual, etiqueta_siguiente){
+    var btn = $('#btn_avanzar_pedido').prop('disabled', true);
+    $.post("Pedidos/back_pedidos.php", { accion:"avanzar_estado", id:id, estado_actual:estado_actual }, function(resp){
         var r = JSON.parse(resp);
         if(r.ok){
             $("#modal_general").modal('hide');
-            Swal.fire({title:"Estado actualizado",text:"El pedido fue actualizado correctamente.",icon:"success",timer:1500,showConfirmButton:false});
+            Swal.fire({title:"Pedido " + etiqueta_siguiente.toLowerCase(),icon:"success",timer:1500,showConfirmButton:false});
             cargar_pedidos();
         } else {
+            btn.prop('disabled', false);
             Swal.fire({title:"No se pudo actualizar",text:r.error,icon:"warning",confirmButtonColor:"#d33",confirmButtonText:"Aceptar"});
         }
     });

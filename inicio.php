@@ -26,6 +26,7 @@ $es_admin        = ($rol === 'admin');
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -60,6 +61,7 @@ $es_admin        = ($rol === 'admin');
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_pedidos(); return false;">
                 <i class="fa-solid fa-truck-fast"></i> Pedidos
+                <span id="badge_pedidos" class="badge-menu" style="display:none" title="Pedidos nuevos por confirmar"></span>
             </a></li>
             <?php if ($es_admin): ?>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_configuracion(); return false;">
@@ -178,8 +180,32 @@ function modal_g_ventas(){
     $("#contenido_modal").load("Ventas/modal_g_ventas.php");
     $("#modal_general").modal('show');
 }
+// ── Aviso de pedidos nuevos desde la tienda ──
+// La página no se entera sola de los pedidos que entran; cada 30 s pregunta al servidor.
+var ultimo_pedido_visto = null;
+
+function revisar_pedidos(){
+    $.getJSON("Pedidos/conteo_pedidos.php", function(r){
+        $('#badge_pedidos').text(r.nuevos).toggle(r.nuevos > 0);
+
+        var llego_nuevo = ultimo_pedido_visto !== null && r.ultimo_id > ultimo_pedido_visto;
+        ultimo_pedido_visto = r.ultimo_id;
+        if(!llego_nuevo) return;
+
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'info', iconColor: '#c69a4c', timer: 6000, timerProgressBar: true,
+            showConfirmButton: true, confirmButtonText: 'Ver pedidos', confirmButtonColor: '#c69a4c',
+            title: 'Llegó un pedido nuevo'
+        }).then(function(res){ if(res.isConfirmed) ir_a('pedidos'); });
+
+        var viendo_pedidos = $('.sidebar-nav .nav-link.active').is('[onclick*="cargar_pedidos"]');
+        if(viendo_pedidos && !$('#modal_general').hasClass('show')) cargar_pedidos();
+    });
+}
+
 function cargar_pedidos(){
     $("#contenedor_principal").load("Pedidos/modal_pedidos.php", function(){
+        revisar_pedidos();
         if($.fn.DataTable.isDataTable('#tbl_pedidos')){
             $('#tbl_pedidos').DataTable().destroy();
         }
@@ -257,6 +283,8 @@ function ir_a(seccion){
 
 $(document).ready(function(){
     cargar_dashboard();
+    revisar_pedidos();
+    setInterval(revisar_pedidos, 30000);
 });
 </script>
 

@@ -91,6 +91,16 @@ a{ text-decoration:none; }
 }
 .sidebar-nav .nav-link i{ width:18px; text-align:center; font-size:0.9rem; }
 
+.badge-menu{
+    margin-left:auto;
+    min-width:20px; height:20px; padding:0 6px;
+    border-radius:10px;
+    background:var(--dorado); color:#1b1608;
+    font-size:.7rem; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center;
+}
+.sidebar-nav .nav-link.active .badge-menu{ background:#1b1608; color:var(--dorado); }
+
 .sidebar-nav .nav-link:hover{
     background: rgba(255,255,255,0.06);
     color:#f1ead9;
@@ -272,6 +282,16 @@ label{
     font-weight:500;
     color:var(--texto);
     margin-bottom:4px;
+}
+
+/* ── DataTables ── */
+/* En columnas numéricas y de fecha DataTables pone el ícono de orden a la izquierda del título,
+   pegado al ícono de la columna anterior. Lo dejamos a la derecha, como en las demás. */
+table.dataTable thead th.dt-type-numeric div.dt-column-header,
+table.dataTable thead th.dt-type-date div.dt-column-header{
+    flex-direction:row;
+    justify-content:flex-end;
+    gap:6px;
 }
 
 /* ── Responsive ── */
