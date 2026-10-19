@@ -4,6 +4,11 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Sesión para saber si el cliente ya inició sesión (el catálogo se puede ver sin ella)
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Cargar lógica de la base de datos
 require_once __DIR__ . '/back_catalogo_pub.php';
 ?>
@@ -69,10 +74,26 @@ require_once __DIR__ . '/back_catalogo_pub.php';
                 </ul>
             </div>
             
-           <!-- Botón de carrito superior en la barra de navegación -->
-<div class="d-none d-lg-block">
+           <!-- Sesión del cliente y carrito en la barra de navegación -->
+<div class="d-none d-lg-flex align-items-center gap-2">
+    <?php if (isset($_SESSION['cliente_id'])): ?>
+        <div class="dropdown">
+            <button class="btn btn-outline-dark rounded-pill px-3 text-uppercase font-serif dropdown-toggle" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem; letter-spacing: 1px;">
+                <i class="bi bi-person-circle me-1"></i> <?= htmlspecialchars($_SESSION['cliente_nombre']) ?>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item small" href="sesion-cliente/indexP.php"><i class="bi bi-bag-check me-2"></i>Mis Pedidos</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item small" href="#" onclick="cerrarSesionCliente(); return false;"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    <?php else: ?>
+        <a href="sesion-cliente/indexS.php" class="btn btn-outline-dark rounded-pill px-3 text-uppercase font-serif" style="font-size: 0.8rem; letter-spacing: 1px;">
+            <i class="bi bi-person me-1"></i> Iniciar Sesión
+        </a>
+    <?php endif; ?>
     <a href="carrito/indexC.php" class="btn btn-outline-dark border-0 position-relative text-decoration-none">
-        <i class="bi bi-cart3 fs-5"></i> 
+        <i class="bi bi-cart3 fs-5"></i>
         <span id="badgeCarritoCount" class="badge bg-gold rounded-pill">0</span>
     </a>
 </div>
@@ -179,6 +200,19 @@ require_once __DIR__ . '/back_catalogo_pub.php';
         if (inputBuscar) inputBuscar.addEventListener('input', filtrar);
         if (selectGenero) selectGenero.addEventListener('change', filtrar);
     });
+
+    function cerrarSesionCliente() {
+        const formData = new FormData();
+        formData.append('accion', 'cerrar_sesion');
+
+        fetch('sesion-cliente/act_login_cliente.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(() => location.reload())
+        .catch(err => console.error('Error al cerrar sesión:', err));
+    }
 
     // Función para consultar la cantidad real de productos en el carrito
     function actualizarBadgeCarrito() {
