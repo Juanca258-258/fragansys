@@ -23,6 +23,7 @@ $acciones = [
     'Ajuste de ml'   => ['aviso',  'fa-sliders'],
     'Anular'         => ['alerta', 'fa-ban'],
     'Cancelar'       => ['alerta', 'fa-ban'],
+    'Cancelar (cliente)' => ['alerta', 'fa-user-xmark'],
     'Abrir frasco'   => ['info',   'fa-flask'],
     'Iniciar sesión' => ['neutro', 'fa-right-to-bracket'],
     'Cerrar sesión'  => ['neutro', 'fa-right-from-bracket'],
@@ -33,6 +34,7 @@ $modulos = [
     'Ventas'     => 'fa-cart-shopping',
     'Pedidos'    => 'fa-truck-fast',
     'Usuarios'   => 'fa-users',
+    'Configuración' => 'fa-gear',
     'Sesión'     => 'fa-key',
 ];
 $hoy = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS n FROM movimientos WHERE DATE(fecha) = CURDATE()"))['n'];

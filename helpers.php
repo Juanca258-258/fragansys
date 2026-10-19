@@ -40,6 +40,30 @@ function subir_imagen($campo, $carpeta_relativa) {
     return ['ok' => true, 'archivo' => $carpeta_relativa . '/' . $nombre_final];
 }
 
+// Valores por defecto mientras no se hayan guardado en Configuración.
+const CONFIG_DEFECTO = [
+    'negocio_nombre'       => 'Fragansys',
+    'negocio_direccion'    => '',
+    'negocio_telefono'     => '',
+    'negocio_correo'       => '',
+    'negocio_rfc'          => '',
+    'ticket_mensaje'       => '¡Gracias por su compra!',
+    'envio_costo'          => '0',
+    'envio_gratis_desde'   => '',
+    'stock_minimo_defecto' => '1',
+];
+
+function obtener_config($conn) {
+    $config = CONFIG_DEFECTO;
+    $res = mysqli_query($conn, "SELECT clave, valor FROM configuracion");
+    while ($fila = mysqli_fetch_assoc($res)) {
+        if (array_key_exists($fila['clave'], $config)) {
+            $config[$fila['clave']] = $fila['valor'];
+        }
+    }
+    return $config;
+}
+
 function registrar_movimiento($conn, $modulo, $accion, $descripcion, $usuario_id = null) {
     $usuario_id = $usuario_id ?? ($_SESSION['id_usuario'] ?? null);
     $stmt = $conn->prepare("INSERT INTO movimientos (usuario_id, modulo, accion, descripcion) VALUES (?,?,?,?)");

@@ -56,7 +56,7 @@ $v = function ($campo, $defecto = '') use ($p) {
         </div>
         <div class="col-md-4 mb-3">
             <label>Mínimo de frascos sellados</label>
-            <input type="number" name="stock_minimo_frascos" class="form-control" step="1" min="0" value="<?= $v('stock_minimo_frascos', '1') ?>" required>
+            <input type="number" name="stock_minimo_frascos" class="form-control" step="1" min="0" value="<?= $v('stock_minimo_frascos', $minimo_defecto ?? '1') ?>" required>
         </div>
         <div class="col-md-4 mb-3 d-flex align-items-end">
             <div class="form-text">Al llegar a este mínimo, el perfume aparece en "Stock bajo" del Dashboard.</div>

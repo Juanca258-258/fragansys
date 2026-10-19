@@ -1,7 +1,9 @@
 <?php
 require_once("../sesion.php");
 require_once("../conexion.php");
+require_once("../helpers.php");
 
+$config = obtener_config($conn);
 $id = (int)($_GET['id'] ?? 0);
 $venta = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT v.*, CONCAT(u.nombre, ' ', u.apellidos) AS vendedor
@@ -73,8 +75,12 @@ td { vertical-align: top; padding: 1px 0; }
 </div>
 
 <div class="ticket">
-    <div class="centro negocio">FRAGANSYS</div>
-    <div class="centro">Fragancias originales</div>
+    <div class="centro negocio"><?= htmlspecialchars(mb_strtoupper($config['negocio_nombre'])) ?></div>
+    <?php foreach (['negocio_direccion' => '', 'negocio_telefono' => 'Tel. ', 'negocio_correo' => '', 'negocio_rfc' => 'RFC: '] as $clave => $prefijo): ?>
+        <?php if ($config[$clave] !== ''): ?>
+        <div class="centro"><?= $prefijo . htmlspecialchars($config[$clave]) ?></div>
+        <?php endif; ?>
+    <?php endforeach; ?>
     <div class="linea"></div>
 
     <?php if ($cancelada): ?>
@@ -117,7 +123,9 @@ td { vertical-align: top; padding: 1px 0; }
     </table>
 
     <div class="linea"></div>
-    <div class="centro">¡Gracias por su compra!</div>
+    <?php if ($config['ticket_mensaje'] !== ''): ?>
+    <div class="centro"><?= htmlspecialchars($config['ticket_mensaje']) ?></div>
+    <?php endif; ?>
 </div>
 
 <?php if (!empty($_GET['imprimir'])): ?>
