@@ -12,25 +12,38 @@ $res = mysqli_query($conn,
 while ($pr = mysqli_fetch_assoc($res)) {
     $presentaciones[$pr['perfume_id']][] = $pr;
 }
+
+$total_frascos = array_sum(array_column($perfumes, 'frascos_sellados'));
+$generos = [
+    'hombre' => ['Hombre', 'fa-mars'],
+    'mujer'  => ['Mujer', 'fa-venus'],
+    'unisex' => ['Unisex', 'fa-venus-mars'],
+];
 ?>
-<div class="page-header">
-    <h1>Perfumes</h1>
-    <div class="sub">Inventario de frascos y decants, con sus precios de venta</div>
+<div class="modulo-cab compacto">
+    <div class="modulo-icono"><i class="fa-solid fa-spray-can-sparkles"></i></div>
+    <div>
+        <h1>Perfumes</h1>
+        <div class="sub">Catálogo de perfumes, sus presentaciones y precios de venta</div>
+    </div>
+    <div class="acciones-cab">
+        <span class="dato-cab"><i class="fa-solid fa-spray-can-sparkles"></i> <strong><?= count($perfumes) ?></strong> perfume<?= count($perfumes) == 1 ? '' : 's' ?></span>
+        <span class="dato-cab"><i class="fa-solid fa-box"></i> <strong><?= (int)$total_frascos ?></strong> frasco<?= $total_frascos == 1 ? '' : 's' ?> sellado<?= $total_frascos == 1 ? '' : 's' ?></span>
+        <button class="btn-dorado" onclick="modal_g_perfumes()"><i class="fa-solid fa-plus"></i> Nuevo perfume</button>
+    </div>
 </div>
 
-<div class="panel">
+<div class="panel panel-modulo">
 <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
     <div class="input-group input-busqueda">
         <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted" style="font-size:.8rem"></i></span>
-        <input type="text" class="form-control" placeholder="Buscar..."
+        <input type="text" class="form-control" placeholder="Buscar perfume o marca..."
                oninput="if($.fn.DataTable.isDataTable('#tbl_perfumes')){$('#tbl_perfumes').DataTable().search(this.value).draw();}">
     </div>
-    <button class="btn-dorado" onclick="modal_g_perfumes()">
-        <i class="fa-solid fa-plus"></i> Nuevo perfume
-    </button>
 </div>
 
-<table id="tbl_perfumes" class="table table-hover align-middle">
+<div class="table-responsive">
+<table id="tbl_perfumes" class="table tabla-modulo align-middle">
 <thead>
 <tr>
     <th></th>
@@ -38,47 +51,52 @@ while ($pr = mysqli_fetch_assoc($res)) {
     <th>Género</th>
     <th>Frascos sellados</th>
     <th>Para decants</th>
-    <th>Presentaciones</th>
+    <th>Presentaciones a la venta</th>
     <th>Acciones</th>
 </tr>
 </thead>
 <tbody>
 <?php foreach ($perfumes as $p) {
     $frascos_bajo = $p['frascos_sellados'] <= $p['stock_minimo_frascos'];
+    [$genero_txt, $genero_ico] = $generos[$p['genero']] ?? [ucfirst($p['genero']), 'fa-venus-mars'];
 ?>
 <tr>
-    <td style="width:48px">
+    <td style="width:56px">
         <?php if ($p['imagen']): ?>
-            <img src="<?= htmlspecialchars($p['imagen']) ?>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--borde)">
+            <img src="<?= htmlspecialchars($p['imagen']) ?>" alt="" class="foto-mini">
         <?php endif; ?>
     </td>
     <td>
         <div class="fw-semibold"><?= htmlspecialchars($p['nombre']) ?></div>
         <div class="small text-muted"><?= htmlspecialchars($p['marca']) ?></div>
     </td>
-    <td><span class="badge bg-secondary"><?= ucfirst($p['genero']) ?></span></td>
-    <td>
-        <span class="badge bg-<?= $frascos_bajo ? 'danger' : 'success' ?>"><?= (int)$p['frascos_sellados'] ?></span>
-        <span class="small text-muted">de <?= (float)$p['ml_por_frasco'] ?> ml</span>
-        <div class="small text-muted">mín. <?= (int)$p['stock_minimo_frascos'] ?></div>
+    <td><span class="estado neutro"><i class="fa-solid <?= $genero_ico ?>"></i> <?= $genero_txt ?></span></td>
+    <td data-order="<?= (int)$p['frascos_sellados'] ?>">
+        <div class="fw-semibold"><?= (int)$p['frascos_sellados'] ?></div>
+        <div class="small text-muted" style="white-space:nowrap">de <?= (float)$p['ml_por_frasco'] ?> ml · mín. <?= (int)$p['stock_minimo_frascos'] ?></div>
+        <?php if ($frascos_bajo): ?>
+        <span class="estado alerta mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Stock bajo</span>
+        <?php endif; ?>
     </td>
-    <td><?= (float)$p['ml_disponibles'] ?> ml</td>
-    <td class="small">
+    <td data-order="<?= (float)$p['ml_disponibles'] ?>"><?= (float)$p['ml_disponibles'] ?> ml</td>
+    <td>
         <?php foreach ($presentaciones[$p['id']] ?? [] as $pr): ?>
-            <div>
+            <span class="chip">
+                <i class="fa-solid <?= $pr['tipo'] == 'frasco' ? 'fa-wine-bottle' : 'fa-droplet' ?> text-muted"></i>
                 <?= $pr['tipo'] == 'frasco' ? 'Frasco' : 'Decant' ?> <?= (float)$pr['ml'] ?> ml
-                · <strong>$<?= number_format($pr['precio'], 2) ?></strong>
-            </div>
+                <strong>$<?= number_format($pr['precio'], 2) ?></strong>
+            </span>
         <?php endforeach; ?>
     </td>
     <td style="white-space:nowrap">
-        <button class="btn btn-warning btn-sm" onclick="modal_act_perfumes(<?= $p['id'] ?>)">
+        <button class="btn-accion" onclick="modal_act_perfumes(<?= $p['id'] ?>)">
             <i class="fa-solid fa-pen"></i> Editar
-        </button>        <button class="btn btn-info btn-sm" onclick="abrir_frasco(<?= $p['id'] ?>, <?= htmlspecialchars(json_encode($p['nombre'])) ?>, <?= (float)$p['ml_por_frasco'] ?>)"
+        </button>
+        <button class="btn-accion" onclick="abrir_frasco(<?= $p['id'] ?>, <?= htmlspecialchars(json_encode($p['nombre'])) ?>, <?= (float)$p['ml_por_frasco'] ?>)"
                 <?= $p['frascos_sellados'] > 0 ? '' : 'disabled title="No hay frascos sellados"' ?>>
             <i class="fa-solid fa-flask"></i> Abrir frasco
         </button>
-        <button class="btn btn-danger btn-sm" onclick="eliminar_perfume(<?= $p['id'] ?>)">
+        <button class="btn-accion peligro" title="Eliminar" onclick="eliminar_perfume(<?= $p['id'] ?>)">
             <i class="fa-solid fa-trash"></i>
         </button>
     </td>
@@ -86,6 +104,7 @@ while ($pr = mysqli_fetch_assoc($res)) {
 <?php } ?>
 </tbody>
 </table>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

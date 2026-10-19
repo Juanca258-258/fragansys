@@ -150,41 +150,6 @@ a{ text-decoration:none; }
     margin-top:2px;
 }
 
-/* ── Tarjetas de estadísticas ── */
-.stat-card{
-    background:#fff;
-    border:1px solid var(--borde);
-    border-radius:12px;
-    padding:18px 20px;
-    height:100%;
-}
-.stat-card .label{
-    text-transform:uppercase;
-    letter-spacing:0.6px;
-    font-size:0.68rem;
-    font-weight:600;
-    color:var(--dorado-oscuro);
-    margin-bottom:10px;
-}
-.stat-card .valor{
-    font-family:'Playfair Display', serif;
-    font-size:1.9rem;
-    font-weight:700;
-    color:var(--texto);
-    line-height:1;
-}
-.stat-card .extra{
-    font-size:0.76rem;
-    color:var(--texto-suave);
-    margin-top:6px;
-}
-.stat-card.oscura{
-    background: var(--negro);
-    border-color: var(--negro);
-}
-.stat-card.oscura .label{ color:var(--dorado); }
-.stat-card.oscura .valor{ color:var(--dorado); }
-
 /* ── Paneles ── */
 .panel{
     background:#fff;
@@ -284,6 +249,100 @@ label{
     margin-bottom:4px;
 }
 
+/* ── Componentes de módulo (mismo estilo que Reportes) ── */
+.modulo-cab{ display:flex; align-items:center; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+.modulo-icono{
+    width:46px; height:46px; border-radius:12px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--negro); color:var(--dorado); font-size:1.15rem;
+}
+.modulo-cab h1{ font-size:1.6rem; font-weight:700; margin:0; line-height:1.15; }
+.modulo-cab .sub{ font-size:.85rem; color:var(--texto-suave); }
+.modulo-cab .acciones-cab{ margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.dato-cab{
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    font-size:.8rem; color:var(--texto-suave);
+    padding:6px 12px; border:1px solid var(--borde); border-radius:999px; background:#fff;
+}
+.dato-cab i{ color:var(--dorado-oscuro); font-size:.8rem; }
+.dato-cab strong{ color:var(--texto); font-weight:600; }
+
+/* Versión compacta del encabezado para módulos donde lo principal es la tabla. */
+.modulo-cab.compacto{ margin-bottom:14px; gap:12px; }
+.modulo-cab.compacto .modulo-icono{ width:36px; height:36px; border-radius:10px; font-size:.95rem; }
+.modulo-cab.compacto h1{ font-size:1.3rem; }
+.modulo-cab.compacto .sub{ font-size:.78rem; }
+
+.kpi{
+    background:#fff; border:1px solid var(--borde); border-radius:12px; padding:16px 18px; height:100%;
+    display:flex; gap:14px; align-items:flex-start;
+}
+.kpi-icono{
+    width:38px; height:38px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--dorado-claro); color:var(--dorado-oscuro);
+}
+.kpi-label{ font-size:.7rem; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:var(--texto-suave); }
+.kpi-valor{ font-family:'Poppins', sans-serif; font-size:1.5rem; font-weight:600; line-height:1.2; color:var(--texto); }
+.kpi-nota{ font-size:.75rem; color:var(--texto-suave); }
+.kpi.destacado{ background:var(--negro); border-color:var(--negro); }
+.kpi.destacado .kpi-icono{ background:rgba(198,154,76,.18); color:var(--dorado); }
+.kpi.destacado .kpi-label, .kpi.destacado .kpi-nota{ color:#bfb39a; }
+.kpi.destacado .kpi-valor{ color:#fff; }
+.kpi.alerta .kpi-icono{ background:#fbe7e0; color:#9b3d1e; }
+
+.estado{
+    display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:999px;
+}
+.estado.alerta { background:#fbe7e0; color:#9b3d1e; }
+.estado.bien   { background:#e3f1e6; color:#2f6b3b; }
+.estado.aviso  { background:#fbf0d9; color:#7a5a12; }
+.estado.info   { background:#e5edf6; color:#2c4f78; }
+.estado.neutro { background:var(--crema-2); color:var(--texto-suave); }
+
+.chip{
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    font-size:.75rem; padding:3px 9px; margin:2px 4px 2px 0;
+    border:1px solid var(--borde); border-radius:7px; background:var(--crema);
+}
+.chip strong{ color:var(--texto); }
+
+.tabla-modulo{ width:100%; }
+.tabla-modulo thead th{
+    font-size:.68rem !important; letter-spacing:.5px; text-transform:uppercase;
+    color:var(--texto-suave) !important; font-weight:600 !important;
+    background:transparent !important; border-bottom:1px solid var(--borde) !important;
+}
+.tabla-modulo tbody td{ border-bottom:1px solid #f4f0e6; font-size:.86rem; vertical-align:middle; }
+.tabla-modulo tbody tr:hover td{ background:var(--crema); }
+.avatar-ini{
+    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--negro); color:var(--dorado); font-size:.75rem; font-weight:700; letter-spacing:.5px;
+}
+.foto-mini{ width:44px; height:44px; object-fit:cover; border-radius:10px; border:1px solid var(--borde); display:block; }
+
+.btn-accion{
+    display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+    font-size:.76rem; font-weight:600; padding:6px 11px; border-radius:8px;
+    border:1px solid var(--borde); background:#fff; color:var(--texto);
+    transition:border-color .15s, color .15s, background .15s;
+}
+.btn-accion:hover{ border-color:var(--dorado); color:var(--dorado-oscuro); }
+.btn-accion.peligro:hover{ border-color:#c0522e; color:#c0522e; background:#fdf1ee; }
+.btn-accion:disabled{ opacity:.45; cursor:not-allowed; border-color:var(--borde); color:var(--texto-suave); background:#fff; }
+
+.panel-modulo .dt-info{ font-size:.78rem; color:var(--texto-suave); padding-top:12px; }
+.panel-modulo .pagination{ gap:4px; margin:8px 0 0; }
+.panel-modulo .page-link{
+    border:1px solid var(--borde); border-radius:8px !important; color:var(--texto);
+    font-size:.78rem; padding:5px 11px; background:#fff;
+}
+.panel-modulo .page-link:hover{ border-color:var(--dorado); color:var(--dorado-oscuro); background:#fff; }
+.panel-modulo .page-item.active .page-link{ background:var(--negro); border-color:var(--negro); color:var(--dorado); }
+.panel-modulo .page-item.disabled .page-link{ background:#fff; color:#cfc6b2; border-color:#f1ebdb; }
+
 /* ── DataTables ── */
 /* En columnas numéricas y de fecha DataTables pone el ícono de orden a la izquierda del título,
    pegado al ícono de la columna anterior. Lo dejamos a la derecha, como en las demás. */
@@ -293,6 +352,9 @@ table.dataTable thead th.dt-type-date div.dt-column-header{
     justify-content:flex-end;
     gap:6px;
 }
+/* Las fechas se leen mejor alineadas a la izquierda; los números se quedan a la derecha. */
+table.dataTable th.dt-type-date, table.dataTable td.dt-type-date{ text-align:left; }
+table.dataTable thead th.dt-type-date div.dt-column-header{ justify-content:space-between; }
 
 /* ── Responsive ── */
 @media (max-width: 900px){

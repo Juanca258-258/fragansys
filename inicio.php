@@ -281,6 +281,12 @@ function ir_a(seccion){
     window['cargar_'+seccion]();
 }
 
+// Con data-bs-focus="false" Bootstrap ya no mueve el foco a la ventana, y sin foco dentro
+// la tecla Esc no la cierra. Se enfoca una vez al abrir, sin la trampa de foco que les quitaba el foco a las alertas.
+$('#modal_general').on('shown.bs.modal', function(){
+    if(!this.contains(document.activeElement)) this.focus();
+});
+
 $(document).ready(function(){
     cargar_dashboard();
     revisar_pedidos();

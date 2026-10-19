@@ -11,12 +11,15 @@ if ($_SESSION['rol'] !== 'admin') {
 [$periodo, $desde, $hasta] = periodo_desde_peticion($_GET);
 $r = obtener_reportes($conn, $desde, $hasta);
 ?>
-<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+<div class="modulo-cab compacto">
+    <div class="modulo-icono"><i class="fa-solid fa-chart-line"></i></div>
     <div>
         <h1>Reportes</h1>
         <div class="sub">Ventas, productos, compras, ganancia e inventario</div>
     </div>
-    <button class="btn-dorado" onclick="imprimir_reportes()"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>
+    <div class="acciones-cab">
+        <button class="btn-dorado" onclick="imprimir_reportes()"><i class="fa-solid fa-print"></i> Imprimir / PDF</button>
+    </div>
 </div>
 
 <div class="panel mb-3">
