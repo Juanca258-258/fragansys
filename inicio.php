@@ -25,6 +25,7 @@ $es_admin        = ($rol === 'admin');
 <link rel="stylesheet" href="css/estilos.css">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -66,6 +67,9 @@ $es_admin        = ($rol === 'admin');
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_usuarios(); return false;">
                 <i class="fa-solid fa-users"></i> Usuarios
+            </a></li>
+            <li><a href="#" class="nav-link" onclick="activar(this); cargar_reportes(); return false;">
+                <i class="fa-solid fa-chart-line"></i> Reportes
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_historial(); return false;">
                 <i class="fa-solid fa-clock-rotate-left"></i> Historial
@@ -226,6 +230,9 @@ function modal_act_usuarios(id){
         $("#contenido_modal").html(data);
         $("#modal_general").modal('show');
     });
+}
+function cargar_reportes(parametros){
+    $("#contenedor_principal").load("Reportes/modal_reportes.php?" + $.param(parametros || {}));
 }
 function cargar_historial(){
     $("#contenedor_principal").load("Historial/modal_historial.php", function(){
