@@ -2,17 +2,15 @@
 require_once("../sesion.php");
 require_once("../conexion.php");
 
+// La vista ya calcula cuántas unidades alcanzan con el inventario actual.
 $res = mysqli_query($conn,
-    "SELECT pr.id, pr.tipo, pr.ml, pr.precio, pf.nombre, pf.marca,
-            IF(pr.tipo = 'frasco', pf.frascos_sellados, FLOOR(pf.ml_disponibles / pr.ml)) AS disponibles
-     FROM presentaciones pr
-     INNER JOIN perfumes pf ON pr.perfume_id = pf.id
-     WHERE pr.activo = 1 AND pf.activo = 1
-     ORDER BY pf.marca, pf.nombre, pr.tipo = 'frasco', pr.ml");
+    "SELECT presentacion_id AS id, nombre, marca, presentacion, precio, unidades_disponibles AS disponibles
+     FROM vw_catalogo_presentaciones
+     WHERE disponible = 1
+     ORDER BY marca, nombre, tipo = 'frasco', ml");
 $opciones = [];
 while ($p = mysqli_fetch_assoc($res)) {
-    if ($p['disponibles'] <= 0) continue;
-    $p['etiqueta'] = $p['nombre'] . ' — ' . ($p['tipo'] === 'frasco' ? 'Frasco ' : 'Decant ') . (float)$p['ml'] . ' ml';
+    $p['etiqueta'] = $p['nombre'] . ' — ' . $p['presentacion'];
     $opciones[] = $p;
 }
 ?>
