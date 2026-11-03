@@ -30,6 +30,7 @@ $acciones = [
 ];
 $modulos = [
     'Perfumes'   => 'fa-spray-can-sparkles',
+    'Combos'     => 'fa-gift',
     'Inventario' => 'fa-boxes-stacked',
     'Ventas'     => 'fa-cart-shopping',
     'Pedidos'    => 'fa-truck-fast',

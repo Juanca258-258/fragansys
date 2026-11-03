@@ -159,7 +159,29 @@ function modal_ajuste_inventario(){
 }
 
 function cargar_combos(){
-    $("#contenedor_principal").load("Combos/modal_combos.php");
+    $("#contenedor_principal").load("Combos/modal_combos.php", function(){
+        if($.fn.DataTable.isDataTable('#tbl_combos')){
+            $('#tbl_combos').DataTable().destroy();
+        }
+        $('#tbl_combos').DataTable({
+            language: { url: 'https://cdn.datatables.net/plug-ins/2.3.8/i18n/es-MX.json' },
+            pageLength: 25,
+            order: [],
+            responsive: true,
+            dom: 'tip',
+            columnDefs: [{ orderable: false, targets: [0, 2, 5] }]
+        });
+    });
+}
+function modal_g_combos(){
+    $("#contenido_modal").load("Combos/modal_g_combos.php");
+    $("#modal_general").modal('show');
+}
+function modal_act_combos(id){
+    $.post("Combos/modal_act_combos.php", {id:id}, function(data){
+        $("#contenido_modal").html(data);
+        $("#modal_general").modal('show');
+    });
 }
 function cargar_ventas(){
     $("#contenedor_principal").load("Ventas/modal_ventas.php", function(){
