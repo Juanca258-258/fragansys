@@ -70,3 +70,57 @@ function registrar_movimiento($conn, $modulo, $accion, $descripcion, $usuario_id
     $stmt->bind_param("isss", $usuario_id, $modulo, $accion, $descripcion);
     $stmt->execute();
 }
+
+/**
+ * Datos de un combo activo para venderlo: id, nombre, precio, imagen, piezas y stock.
+ * El stock son los combos completos que alcanzan: se suma lo que el combo pide de cada perfume
+ * (ml para los decants, frascos sellados para los frascos) y se compara con lo disponible.
+ * Devuelve null si el combo no existe, está inactivo o alguna de sus presentaciones ya no está activa.
+ */
+function obtener_combo_venta($conn, $combo_id) {
+    $stmt = $conn->prepare("SELECT id, nombre, precio, imagen FROM combos WHERE id = ? AND activo = 1");
+    $stmt->bind_param("i", $combo_id);
+    $stmt->execute();
+    $combo = $stmt->get_result()->fetch_assoc();
+    if (!$combo) return null;
+
+    $stmt = $conn->prepare(
+        "SELECT cp.cantidad, pr.tipo, pr.ml, pr.activo AND pf.activo AS activo,
+                pf.id AS perfume_id, pf.frascos_sellados, pf.ml_disponibles
+         FROM combo_presentaciones cp
+         INNER JOIN presentaciones pr ON cp.presentacion_id = pr.id
+         INNER JOIN perfumes pf ON pr.perfume_id = pf.id
+         WHERE cp.combo_id = ?");
+    $stmt->bind_param("i", $combo_id);
+    $stmt->execute();
+    $filas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    if (empty($filas)) return null;
+
+    $por_perfume = [];
+    $piezas = 0;
+    foreach ($filas as $f) {
+        if (!$f['activo']) return null;
+        $pid = (int)$f['perfume_id'];
+        if (!isset($por_perfume[$pid])) {
+            $por_perfume[$pid] = ['ml' => 0, 'frascos' => 0,
+                                  'ml_disp' => (float)$f['ml_disponibles'], 'frascos_disp' => (int)$f['frascos_sellados']];
+        }
+        if ($f['tipo'] === 'frasco') {
+            $por_perfume[$pid]['frascos'] += (int)$f['cantidad'];
+        } else {
+            $por_perfume[$pid]['ml'] += (float)$f['ml'] * (int)$f['cantidad'];
+        }
+        $piezas += (int)$f['cantidad'];
+    }
+
+    $stock = PHP_INT_MAX;
+    foreach ($por_perfume as $p) {
+        if ($p['ml'] > 0)      $stock = min($stock, (int)floor(round($p['ml_disp'] / $p['ml'], 6)));
+        if ($p['frascos'] > 0) $stock = min($stock, intdiv($p['frascos_disp'], $p['frascos']));
+    }
+
+    $combo['precio'] = (float)$combo['precio'];
+    $combo['piezas'] = $piezas;
+    $combo['stock']  = max(0, $stock);
+    return $combo;
+}

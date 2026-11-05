@@ -55,8 +55,12 @@ function validarLoginCliente($db, $correo, $password) {
     return $resultado;
 }
 
+// Al cerrar sesión también se vacía el carrito: lo que se agregó con la cuenta no queda para el siguiente visitante
 function cerrarSesionCliente() {
-    unset($_SESSION['cliente_id'], $_SESSION['cliente_nombre'], $_SESSION['cliente_correo']);
+    unset($_SESSION['cliente_id'], $_SESSION['cliente_nombre'], $_SESSION['cliente_correo'],
+          $_SESSION['checkout_cliente_id']);
+    $_SESSION['carrito'] = array();
+    session_regenerate_id(true);
 }
 
 function clienteSesionActiva() {

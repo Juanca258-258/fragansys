@@ -53,7 +53,7 @@ require_once __DIR__ . '/back_catalogo_pub.php';
     <!-- Navbar Minimalista -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="#">
+            <a class="navbar-brand d-flex align-items-center" href="index.php">
                 <span class="rounded-circle text-white d-flex justify-content-center align-items-center" style="width: 35px; height: 35px; background-color: #4a3320; font-family: Georgia, serif;">F</span>
                 <span class="ms-2 fs-4 font-serif text-brown">Fragansys</span>
             </a>
@@ -64,24 +64,33 @@ require_once __DIR__ . '/back_catalogo_pub.php';
             
             <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
                 <ul class="navbar-nav gap-3">
-                    <li class="nav-item"><a class="nav-link active text-uppercase" href="#">Catálogo</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase" href="#">Catálogo Completo</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase" href="#">Decants</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase" href="#">Perfumes</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase" href="#">Combos</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase text-danger" href="#">• Mujer</a></li>
-                    <li class="nav-item"><a class="nav-link text-uppercase text-dark" href="#">• Hombre</a></li>
+                    <?php
+                    $coloresMenu = array('mujer' => ' text-danger', 'hombre' => ' text-dark');
+                    foreach ($SECCIONES_CATALOGO as $clave => $seccion):
+                        $url = $clave === 'inicio' ? 'index.php' : 'index.php?seccion=' . $clave;
+                    ?>
+                        <li class="nav-item">
+                            <a class="nav-link text-uppercase<?= $clave === $seccionActual ? ' active' : '' ?><?= isset($coloresMenu[$clave]) ? $coloresMenu[$clave] : '' ?>" href="<?= $url ?>"><?= $seccion['menu'] ?></a>
+                        </li>
+                    <?php endforeach; ?>
                 </ul>
             </div>
             
            <!-- Sesión del cliente y carrito en la barra de navegación -->
 <div class="d-none d-lg-flex align-items-center gap-2">
     <?php if (isset($_SESSION['cliente_id'])): ?>
+        <?php
+        // En la barra solo va el primer nombre; el nombre completo se muestra dentro del menú
+        $nombreCompleto = trim($_SESSION['cliente_nombre']);
+        $primerNombre   = explode(' ', $nombreCompleto)[0];
+        ?>
         <div class="dropdown">
-            <button class="btn btn-outline-dark rounded-pill px-3 text-uppercase font-serif dropdown-toggle" type="button" data-bs-toggle="dropdown" style="font-size: 0.8rem; letter-spacing: 1px;">
-                <i class="bi bi-person-circle me-1"></i> <?= htmlspecialchars($_SESSION['cliente_nombre']) ?>
+            <button class="btn btn-outline-dark rounded-pill px-3 font-serif dropdown-toggle d-inline-flex align-items-center" type="button" data-bs-toggle="dropdown" title="<?= htmlspecialchars($nombreCompleto) ?>" style="font-size: 0.8rem;">
+                <i class="bi bi-person-circle me-1"></i>
+                <span class="text-truncate d-inline-block" style="max-width: 90px;"><?= htmlspecialchars($primerNombre) ?></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
+                <li><h6 class="dropdown-header text-brown font-serif"><?= htmlspecialchars($nombreCompleto) ?></h6></li>
                 <li><a class="dropdown-item small" href="sesion-cliente/indexP.php"><i class="bi bi-bag-check me-2"></i>Mis Pedidos</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item small" href="#" onclick="cerrarSesionCliente(); return false;"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</a></li>
@@ -133,15 +142,25 @@ require_once __DIR__ . '/back_catalogo_pub.php';
     function agregarAlCarrito(btn) {
         const tarjeta = btn.closest('.card-body');
         const select = tarjeta.querySelector('.selector-variante');
-        const productoId = select.value;
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Agregando...';
 
         const formData = new FormData();
         formData.append('accion', 'agregar');
-        formData.append('producto_id', productoId);
+        formData.append('producto_id', select.value);
         formData.append('cantidad', 1);
+        enviarAlCarrito(btn, formData);
+    }
+
+    function agregarComboAlCarrito(btn, comboId) {
+        const formData = new FormData();
+        formData.append('accion', 'agregar_combo');
+        formData.append('combo_id', comboId);
+        formData.append('cantidad', 1);
+        enviarAlCarrito(btn, formData);
+    }
+
+    function enviarAlCarrito(btn, formData) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Agregando...';
 
         fetch('act_catalogo_pub.php', {
             method: 'POST',
@@ -185,6 +204,7 @@ require_once __DIR__ . '/back_catalogo_pub.php';
             const texto = inputBuscar ? inputBuscar.value.toLowerCase().trim() : '';
             const genero = selectGenero ? selectGenero.value : '';
 
+            let visibles = 0;
             tarjetas.forEach(tarjeta => {
                 const nombre = tarjeta.getAttribute('data-nombre') || '';
                 const marca = tarjeta.getAttribute('data-marca') || '';
@@ -193,8 +213,13 @@ require_once __DIR__ . '/back_catalogo_pub.php';
                 const coincideTexto = nombre.includes(texto) || marca.includes(texto);
                 const coincideGenero = !genero || gen === genero;
 
-                tarjeta.style.display = (coincideTexto && coincideGenero) ? '' : 'none';
+                const visible = coincideTexto && coincideGenero;
+                tarjeta.style.display = visible ? '' : 'none';
+                if (visible) visibles++;
             });
+
+            const sinResultados = document.getElementById('sinResultados');
+            if (sinResultados) sinResultados.classList.toggle('d-none', visibles > 0 || tarjetas.length === 0);
         }
 
         if (inputBuscar) inputBuscar.addEventListener('input', filtrar);

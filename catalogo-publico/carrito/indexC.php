@@ -26,6 +26,10 @@ require_once __DIR__ . '/back_carrito_pub.php';
         .btn-gold { background-color: #b58c5a !important; border-color: #b58c5a !important; }
         .btn-gold:hover { background-color: #9a7346 !important; }
         .bg-dark-card { background-color: #111111 !important; }
+
+        /* Flecha que gira al desplegar los productos de un combo */
+        .btn-ver-combo .bi-chevron-down { transition: transform 0.2s ease; }
+        .btn-ver-combo[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
         
         .navbar-nav .nav-link { font-size: 0.85rem; letter-spacing: 1px; color: #555; }
         .separator-line {

@@ -59,18 +59,34 @@ if (!isset($datosCarrito)) {
                             </thead>
                             <tbody>
                                 <?php foreach ($datosCarrito['items'] as $item): ?>
-                                    <tr id="item-row-<?= $item['producto_id'] ?>">
+                                    <?php $claveJs = htmlspecialchars(json_encode($item['clave'])); ?>
+                                    <tr id="item-row-<?= htmlspecialchars($item['clave']) ?>">
                                         <!-- Detalles del Producto -->
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-light p-2 rounded-3 me-3 text-center" style="width: 65px; height: 65px; flex-shrink: 0;">
-                                                    <img src="../../<?= htmlspecialchars($item['imagen']) ?>" class="img-fluid h-100" style="object-fit: contain;" alt="<?= htmlspecialchars($item['nombre']) ?>">
+                                                <div class="bg-light p-2 rounded-3 me-3 text-center d-flex align-items-center justify-content-center" style="width: 65px; height: 65px; flex-shrink: 0;">
+                                                    <?php if (!empty($item['imagen'])): ?>
+                                                        <img src="../../<?= htmlspecialchars($item['imagen']) ?>" class="img-fluid h-100" style="object-fit: contain;" alt="<?= htmlspecialchars($item['nombre']) ?>">
+                                                    <?php else: ?>
+                                                        <i class="bi <?= $item['tipo'] === 'combo' ? 'bi-gift' : 'bi-droplet' ?> text-gold fs-3"></i>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <div>
                                                     <h6 class="mb-1 font-serif text-brown fw-bold fs-6"><?= htmlspecialchars($item['nombre']) ?></h6>
-                                                    <span class="badge bg-light text-dark border border-secondary-subtle rounded-pill" style="font-size: 0.75rem;">
-                                                        <?= htmlspecialchars($item['marca']) ?> • <?= $item['contenido_ml'] ?> ml
-                                                    </span>
+                                                    <?php if ($item['tipo'] === 'combo'): ?>
+                                                        <!-- Despliega los productos que incluye el combo -->
+                                                        <button type="button" class="btn btn-ver-combo badge bg-light text-dark border border-secondary-subtle rounded-pill d-inline-flex align-items-center"
+                                                                style="font-size: 0.75rem;"
+                                                                data-bs-toggle="collapse" data-bs-target="#combo-detalle-<?= htmlspecialchars($item['clave']) ?>"
+                                                                aria-expanded="false" aria-controls="combo-detalle-<?= htmlspecialchars($item['clave']) ?>">
+                                                            Combo • <?= $item['piezas'] ?> piezas
+                                                            <i class="bi bi-chevron-down ms-1"></i>
+                                                        </button>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-light text-dark border border-secondary-subtle rounded-pill" style="font-size: 0.75rem;">
+                                                            <?= htmlspecialchars($item['marca']) ?> • <?= $item['contenido_ml'] ?> ml
+                                                        </span>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </td>
@@ -83,21 +99,21 @@ if (!isset($datosCarrito)) {
                                         <!-- Formulario de Cantidad Estilizado -->
                                         <td style="width: 150px;">
                                             <div class="input-group input-group-sm rounded-pill overflow-hidden border border-secondary-subtle shadow-sm">
-                                                <button class="btn btn-light text-dark px-2 border-0" type="button" onclick="modificarPaso(<?= $item['producto_id'] ?>, -1)">-</button>
+                                                <button class="btn btn-light text-dark px-2 border-0" type="button" onclick="modificarPaso(<?= $claveJs ?>, -1)">-</button>
                                                 <input type="number" 
-                                                       id="input-cant-<?= $item['producto_id'] ?>"
+                                                       id="input-cant-<?= htmlspecialchars($item['clave']) ?>"
                                                        class="form-control text-center border-0 fw-bold bg-white text-brown" 
                                                        value="<?= $item['cantidad'] ?>" 
                                                        min="1" 
                                                        max="<?= $item['stock'] ?>"
-                                                       onchange="actualizarCantidad(<?= $item['producto_id'] ?>, this.value)"
+                                                       onchange="actualizarCantidad(<?= $claveJs ?>, this.value)"
                                                        style="box-shadow: none;">
-                                                <button class="btn btn-light text-dark px-2 border-0" type="button" onclick="modificarPaso(<?= $item['producto_id'] ?>, 1)">+</button>
+                                                <button class="btn btn-light text-dark px-2 border-0" type="button" onclick="modificarPaso(<?= $claveJs ?>, 1)">+</button>
                                             </div>
                                         </td>
                                         
                                         <!-- Subtotal por Fila -->
-                                        <td class="fw-bold text-brown fs-6" id="subtotal-val-<?= $item['producto_id'] ?>">
+                                        <td class="fw-bold text-brown fs-6" id="subtotal-val-<?= htmlspecialchars($item['clave']) ?>">
                                             $<?= number_format($item['subtotal'], 2) ?>
                                         </td>
                                         
@@ -107,11 +123,39 @@ if (!isset($datosCarrito)) {
                                                     class="btn btn-sm btn-outline-danger rounded-circle p-2 d-inline-flex align-items-center justify-content-center border-0" 
                                                     style="width: 34px; height: 34px;"
                                                     title="Eliminar producto"
-                                                    onclick="eliminarItem(<?= $item['producto_id'] ?>)">
+                                                    onclick="eliminarItem(<?= $claveJs ?>)">
                                                 <i class="bi bi-trash3 fs-6"></i>
                                             </button>
                                         </td>
                                     </tr>
+                                    <?php if ($item['tipo'] === 'combo' && !empty($item['productos'])): ?>
+                                        <!-- Productos incluidos en el combo (oculto hasta que se despliega) -->
+                                        <tr class="collapse" id="combo-detalle-<?= htmlspecialchars($item['clave']) ?>">
+                                            <td colspan="5" class="ps-4 pe-4 pb-3 pt-0 border-top-0">
+                                                <div class="rounded-3 p-3" style="background-color: #fbf8f4; border: 1px dashed #e6ddd2;">
+                                                    <div class="small text-muted text-uppercase mb-2" style="letter-spacing: 1px;">Incluye en cada combo</div>
+                                                    <?php foreach ($item['productos'] as $prod): ?>
+                                                        <div class="d-flex align-items-center py-1">
+                                                            <div class="bg-white rounded-2 me-3 d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                                <?php if (!empty($prod['imagen'])): ?>
+                                                                    <img src="../../<?= htmlspecialchars($prod['imagen']) ?>" class="img-fluid h-100 p-1" style="object-fit: contain;" alt="<?= htmlspecialchars($prod['nombre']) ?>">
+                                                                <?php else: ?>
+                                                                    <i class="bi bi-droplet text-gold"></i>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <div class="flex-grow-1">
+                                                                <div class="fw-semibold text-brown small"><?= htmlspecialchars($prod['nombre']) ?></div>
+                                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                                    <?= htmlspecialchars($prod['marca']) ?> • <?= $prod['tipo'] === 'frasco' ? 'Frasco' : 'Decant' ?> <?= htmlspecialchars($prod['ml']) ?> ml
+                                                                </div>
+                                                            </div>
+                                                            <span class="badge rounded-pill text-white" style="background-color: #b58c5a;">× <?= (int)$prod['cantidad'] ?></span>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>

@@ -19,6 +19,12 @@ function buscarClientePorId($conn, $id) {
     return $stmt->get_result()->fetch_assoc();
 }
 
+// Clave de un producto en el carrito: id de la presentación (número) o "c<id>" para un combo
+function claveCarrito($valor) {
+    $valor = trim((string)$valor);
+    return preg_match('/^c\d+$/', $valor) ? $valor : (int)$valor;
+}
+
 $respuesta = array('status' => 'error', 'message' => 'Acción no válida');
 $accion = isset($_POST['accion']) ? trim($_POST['accion']) : '';
 
@@ -41,7 +47,7 @@ if ($accion === 'obtener_conteo') {
 }
 
 if ($accion === 'actualizar') {
-    $productoId = isset($_POST['producto_id']) ? (int)$_POST['producto_id'] : 0;
+    $productoId = isset($_POST['producto_id']) ? claveCarrito($_POST['producto_id']) : 0;
     $cantidad = isset($_POST['cantidad']) ? (int)$_POST['cantidad'] : 1;
 
     if (isset($_SESSION['carrito'][$productoId])) {
@@ -59,7 +65,7 @@ if ($accion === 'actualizar') {
         }
     }
 } elseif ($accion === 'eliminar') {
-    $productoId = isset($_POST['producto_id']) ? (int)$_POST['producto_id'] : 0;
+    $productoId = isset($_POST['producto_id']) ? claveCarrito($_POST['producto_id']) : 0;
     if (isset($_SESSION['carrito'][$productoId])) {
         unset($_SESSION['carrito'][$productoId]);
         $respuesta['status'] = 'success';
@@ -131,6 +137,7 @@ if ($accion === 'actualizar') {
 } elseif ($accion === 'realizar_pedido') {
     // Por ahora solo se registra el pedido (estado_pago = 'pendiente'); aún no se redirige a PayPal.
     require_once __DIR__ . '/../../conexion.php';
+    require_once __DIR__ . '/../../helpers.php';
 
     $correo = isset($_POST['cliente_correo']) ? trim($_POST['cliente_correo']) : '';
     $notas  = isset($_POST['notas']) ? trim($_POST['notas']) : '';
@@ -206,9 +213,25 @@ if ($accion === 'actualizar') {
         $error    = '';
 
         foreach ($_SESSION['carrito'] as $productoId => $prod) {
-            $productoId = (int)$productoId;
-            $cantidad   = (int)$prod['cantidad'];
+            $cantidad = (int)$prod['cantidad'];
 
+            if (isset($prod['tipo']) && $prod['tipo'] === 'combo') {
+                $combo = obtener_combo_venta($conn, (int)$prod['combo_id']);
+                if (!$combo) {
+                    $error = 'El combo "' . $prod['nombre'] . '" ya no está disponible.';
+                    break;
+                }
+                if ($cantidad > $combo['stock']) {
+                    $error = 'Stock insuficiente para el combo "' . $combo['nombre'] . '". Disponibles: ' . $combo['stock'];
+                    break;
+                }
+                $lineas[] = array('tipo' => 'combo', 'id' => (int)$combo['id'], 'cantidad' => $cantidad,
+                                  'precio' => $combo['precio'], 'subtotal' => $combo['precio'] * $cantidad);
+                $subtotal += $combo['precio'] * $cantidad;
+                continue;
+            }
+
+            $productoId = (int)$productoId;
             $stmtPres->bind_param("i", $productoId);
             $stmtPres->execute();
             $fila = $stmtPres->get_result()->fetch_assoc();
@@ -223,7 +246,7 @@ if ($accion === 'actualizar') {
             }
 
             $precio   = (float)$fila['precio'];
-            $lineas[] = array('presentacion_id' => $productoId, 'cantidad' => $cantidad,
+            $lineas[] = array('tipo' => 'presentacion', 'id' => $productoId, 'cantidad' => $cantidad,
                               'precio' => $precio, 'subtotal' => $precio * $cantidad);
             $subtotal += $precio * $cantidad;
         }
@@ -265,12 +288,14 @@ if ($accion === 'actualizar') {
                 $pedidoId = $conn->insert_id;
 
                 $stmtDet = $conn->prepare(
-                    "INSERT INTO pedido_detalle (pedido_id, tipo, presentacion_id, cantidad, precio_unitario, subtotal)
-                     VALUES (?, 'presentacion', ?, ?, ?, ?)"
+                    "INSERT INTO pedido_detalle (pedido_id, tipo, presentacion_id, combo_id, cantidad, precio_unitario, subtotal)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)"
                 );
                 foreach ($lineas as $l) {
-                    $stmtDet->bind_param("iiidd", $pedidoId, $l['presentacion_id'], $l['cantidad'],
-                                         $l['precio'], $l['subtotal']);
+                    $presentacionId = $l['tipo'] === 'presentacion' ? $l['id'] : null;
+                    $comboId        = $l['tipo'] === 'combo' ? $l['id'] : null;
+                    $stmtDet->bind_param("isiiidd", $pedidoId, $l['tipo'], $presentacionId, $comboId,
+                                         $l['cantidad'], $l['precio'], $l['subtotal']);
                     $stmtDet->execute();
                 }
 

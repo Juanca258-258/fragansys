@@ -5,6 +5,25 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../../conexion.php';
 
+// Productos que incluye un combo, para mostrarlos desplegables en el carrito
+function obtenerProductosCombo($db, $comboId) {
+    if (!$db) {
+        return array();
+    }
+    $stmt = $db->prepare(
+        "SELECT cp.cantidad, pr.tipo, TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr.ml)) AS ml,
+                pf.nombre, pf.marca, pf.imagen
+         FROM combo_presentaciones cp
+         INNER JOIN presentaciones pr ON cp.presentacion_id = pr.id
+         INNER JOIN perfumes pf ON pr.perfume_id = pf.id
+         WHERE cp.combo_id = ?
+         ORDER BY pf.nombre, pr.ml"
+    );
+    $stmt->bind_param("i", $comboId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
 function obtenerCarritoPublico($db) {
     $resumen = array(
         'items' => array(),
@@ -20,8 +39,14 @@ function obtenerCarritoPublico($db) {
         $cant = (int)$item['cantidad'];
         $precio = (float)$item['precio'];
         $subtotal = $cant * $precio;
+        $tipo = isset($item['tipo']) ? $item['tipo'] : 'presentacion';
 
         $resumen['items'][] = array(
+            // Clave del carrito: id de la presentación, o "c<id>" para un combo
+            'clave'        => (string)$productoId,
+            'tipo'         => $tipo,
+            'productos'    => $tipo === 'combo' ? obtenerProductosCombo($db, (int)$item['combo_id']) : array(),
+            'piezas'       => isset($item['piezas']) ? (int)$item['piezas'] : 0,
             'producto_id'  => $item['producto_id'],
             'catalogo_id'  => $item['catalogo_id'],
             'nombre'       => $item['nombre'],

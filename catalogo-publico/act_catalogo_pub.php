@@ -123,6 +123,58 @@ if ($accion === 'agregar') {
     } else {
         $respuesta['message'] = 'Error en la consulta del producto.';
     }
+} elseif ($accion === 'agregar_combo') {
+    require_once __DIR__ . '/../helpers.php';
+
+    $comboId  = isset($_POST['combo_id']) ? (int)$_POST['combo_id'] : 0;
+    $cantidad = isset($_POST['cantidad']) ? (int)$_POST['cantidad'] : 1;
+    $combo    = ($comboId > 0 && $db) ? obtener_combo_venta($db, $comboId) : null;
+
+    // En el carrito los combos usan la clave "c<id>" para no chocar con los ids de presentaciones
+    $clave = 'c' . $comboId;
+
+    if ($cantidad <= 0) {
+        $respuesta['message'] = 'Cantidad inválida.';
+    } elseif (!$combo) {
+        $respuesta['message'] = 'El combo no está disponible.';
+    } else {
+        if (!isset($_SESSION['carrito']) || !is_array($_SESSION['carrito'])) {
+            $_SESSION['carrito'] = array();
+        }
+
+        $nuevaCantidad = (isset($_SESSION['carrito'][$clave]) ? $_SESSION['carrito'][$clave]['cantidad'] : 0) + $cantidad;
+
+        if ($nuevaCantidad > $combo['stock']) {
+            $respuesta['message'] = $combo['stock'] > 0
+                ? 'No puedes agregar más combos de los disponibles en stock (' . $combo['stock'] . ').'
+                : 'El combo está agotado.';
+        } else {
+            $_SESSION['carrito'][$clave] = array(
+                'tipo'         => 'combo',
+                'producto_id'  => $clave,
+                'combo_id'     => $comboId,
+                'catalogo_id'  => null,
+                'nombre'       => $combo['nombre'],
+                'marca'        => 'Combo',
+                'contenido_ml' => null,
+                'piezas'       => $combo['piezas'],
+                'precio'       => $combo['precio'],
+                'cantidad'     => $nuevaCantidad,
+                'stock'        => $combo['stock'],
+                'subtotal'     => $nuevaCantidad * $combo['precio'],
+                'imagen'       => $combo['imagen']
+            );
+
+            $totalItems = 0;
+            foreach ($_SESSION['carrito'] as $prod) {
+                $totalItems += $prod['cantidad'];
+            }
+
+            $respuesta['status'] = 'success';
+            $respuesta['message'] = 'Combo agregado al carrito con éxito.';
+            $respuesta['total_items'] = $totalItems;
+        }
+    }
 }
 
 echo json_encode($respuesta);
