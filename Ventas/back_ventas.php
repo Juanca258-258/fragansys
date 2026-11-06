@@ -29,38 +29,80 @@ if ($accion == "guardar") {
         if ($pid <= 0 || $cant <= 0) fallar('Revisa las cantidades de los productos.');
         $cantidades[$pid] = ($cantidades[$pid] ?? 0) + $cant;
     }
-    if (empty($cantidades)) fallar('Agrega al menos un producto a la venta.');
+    $cant_combos = [];
+    foreach ($_POST['combo_id'] ?? [] as $i => $cid) {
+        $cid  = (int)$cid;
+        $cant = (int)($_POST['cantidad_combo'][$i] ?? 0);
+        if ($cid <= 0 || $cant <= 0) fallar('Revisa las cantidades de los combos.');
+        $cant_combos[$cid] = ($cant_combos[$cid] ?? 0) + $cant;
+    }
+    if (empty($cantidades) && empty($cant_combos)) fallar('Agrega al menos un producto a la venta.');
 
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
         $conn->begin_transaction();
 
-        $ids = implode(',', array_keys($cantidades));
         $presentaciones = [];
-        $res = $conn->query("SELECT pr.id, pr.tipo, pr.ml, pr.precio, pr.perfume_id
-                             FROM presentaciones pr
-                             INNER JOIN perfumes pf ON pr.perfume_id = pf.id
-                             WHERE pr.id IN ($ids) AND pr.activo = 1 AND pf.activo = 1");
-        while ($pr = $res->fetch_assoc()) {
-            $presentaciones[$pr['id']] = $pr;
+        if ($cantidades) {
+            $ids = implode(',', array_keys($cantidades));
+            $res = $conn->query("SELECT pr.id, pr.tipo, pr.ml, pr.precio, pr.perfume_id
+                                 FROM presentaciones pr
+                                 INNER JOIN perfumes pf ON pr.perfume_id = pf.id
+                                 WHERE pr.id IN ($ids) AND pr.activo = 1 AND pf.activo = 1");
+            while ($pr = $res->fetch_assoc()) {
+                $presentaciones[$pr['id']] = $pr;
+            }
+            if (count($presentaciones) !== count($cantidades)) {
+                $conn->rollback();
+                fallar('Uno de los productos ya no está disponible. Vuelve a abrir la venta.');
+            }
         }
-        if (count($presentaciones) !== count($cantidades)) {
-            $conn->rollback();
-            fallar('Uno de los productos ya no está disponible. Vuelve a abrir la venta.');
+
+        // Cada combo con sus piezas; si alguna pieza ya no está a la venta, el combo no se puede vender.
+        $combos = [];
+        if ($cant_combos) {
+            $ids = implode(',', array_keys($cant_combos));
+            $res = $conn->query("SELECT c.id, c.nombre, c.precio, cp.cantidad, pr.tipo, pr.ml, pr.perfume_id,
+                                        (pr.activo = 1 AND pf.activo = 1) AS pieza_activa
+                                 FROM combos c
+                                 INNER JOIN combo_presentaciones cp ON cp.combo_id = c.id
+                                 INNER JOIN presentaciones pr ON pr.id = cp.presentacion_id
+                                 INNER JOIN perfumes pf ON pf.id = pr.perfume_id
+                                 WHERE c.id IN ($ids) AND c.activo = 1");
+            while ($f = $res->fetch_assoc()) {
+                if (!$f['pieza_activa']) {
+                    $conn->rollback();
+                    fallar("El combo {$f['nombre']} incluye un producto que ya no está a la venta.");
+                }
+                $combos[$f['id']] = $combos[$f['id']] ?? ['nombre' => $f['nombre'], 'precio' => (float)$f['precio'], 'piezas' => []];
+                $combos[$f['id']]['piezas'][] = $f;
+            }
+            if (count($combos) !== count($cant_combos)) {
+                $conn->rollback();
+                fallar('Uno de los combos ya no está disponible. Vuelve a abrir la venta.');
+            }
         }
 
         $necesario = [];
         $total = 0;
-        foreach ($cantidades as $id => $cant) {
-            $pr  = $presentaciones[$id];
-            $pid = $pr['perfume_id'];
+        $sumar = function ($pid, $tipo, $ml, $cant) use (&$necesario) {
             $necesario[$pid] = $necesario[$pid] ?? ['frascos' => 0, 'ml' => 0];
-            if ($pr['tipo'] === 'frasco') {
+            if ($tipo === 'frasco') {
                 $necesario[$pid]['frascos'] += $cant;
             } else {
-                $necesario[$pid]['ml'] += $pr['ml'] * $cant;
+                $necesario[$pid]['ml'] += $ml * $cant;
             }
+        };
+        foreach ($cantidades as $id => $cant) {
+            $pr = $presentaciones[$id];
+            $sumar($pr['perfume_id'], $pr['tipo'], $pr['ml'], $cant);
             $total += $pr['precio'] * $cant;
+        }
+        foreach ($cant_combos as $cid => $cant) {
+            foreach ($combos[$cid]['piezas'] as $pz) {
+                $sumar($pz['perfume_id'], $pz['tipo'], $pz['ml'], $pz['cantidad'] * $cant);
+            }
+            $total += $combos[$cid]['precio'] * $cant;
         }
         $total = round($total, 2);
 
@@ -107,6 +149,14 @@ if ($accion == "guardar") {
             $det->bind_param("iiidd", $venta_id, $id, $cant, $precio, $linea);
             $det->execute();
         }
+        $det_combo = $conn->prepare("INSERT INTO venta_detalle (venta_id, tipo, combo_id, cantidad, precio_unitario, subtotal)
+                                     VALUES (?, 'combo', ?, ?, ?, ?)");
+        foreach ($cant_combos as $cid => $cant) {
+            $precio = $combos[$cid]['precio'];
+            $linea  = round($precio * $cant, 2);
+            $det_combo->bind_param("iiidd", $venta_id, $cid, $cant, $precio, $linea);
+            $det_combo->execute();
+        }
 
         $inv = $conn->prepare("UPDATE perfumes SET frascos_sellados = frascos_sellados - ?, ml_disponibles = ml_disponibles - ? WHERE id = ?");
         foreach ($necesario as $pid => $n) {
@@ -137,15 +187,26 @@ if ($accion == "cancelar") {
         fallar('La venta no existe o ya estaba cancelada.');
     }
 
+    // Devuelve las presentaciones sueltas y las piezas de los combos vendidos.
     mysqli_query($conn, "UPDATE perfumes pf
                          INNER JOIN (
-                             SELECT pr.perfume_id,
-                                    SUM(IF(pr.tipo = 'frasco', vd.cantidad, 0))         AS frascos,
-                                    SUM(IF(pr.tipo = 'decant', pr.ml * vd.cantidad, 0)) AS ml
-                             FROM venta_detalle vd
-                             INNER JOIN presentaciones pr ON vd.presentacion_id = pr.id
-                             WHERE vd.venta_id = $id AND vd.tipo = 'presentacion'
-                             GROUP BY pr.perfume_id
+                             SELECT perfume_id, SUM(frascos) AS frascos, SUM(ml) AS ml FROM (
+                                 SELECT pr.perfume_id,
+                                        IF(pr.tipo = 'frasco', vd.cantidad, 0)         AS frascos,
+                                        IF(pr.tipo = 'decant', pr.ml * vd.cantidad, 0) AS ml
+                                 FROM venta_detalle vd
+                                 INNER JOIN presentaciones pr ON vd.presentacion_id = pr.id
+                                 WHERE vd.venta_id = $id AND vd.tipo = 'presentacion'
+                                 UNION ALL
+                                 SELECT pr.perfume_id,
+                                        IF(pr.tipo = 'frasco', vd.cantidad * cp.cantidad, 0),
+                                        IF(pr.tipo = 'decant', pr.ml * vd.cantidad * cp.cantidad, 0)
+                                 FROM venta_detalle vd
+                                 INNER JOIN combo_presentaciones cp ON cp.combo_id = vd.combo_id
+                                 INNER JOIN presentaciones pr ON pr.id = cp.presentacion_id
+                                 WHERE vd.venta_id = $id AND vd.tipo = 'combo'
+                             ) x
+                             GROUP BY perfume_id
                          ) d ON d.perfume_id = pf.id
                          SET pf.frascos_sellados = pf.frascos_sellados + d.frascos,
                              pf.ml_disponibles   = pf.ml_disponibles + d.ml");

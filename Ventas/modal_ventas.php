@@ -78,7 +78,7 @@ $hoy = mysqli_fetch_assoc(mysqli_query($conn,
         <?php endif; ?>
     </td>
     <td style="white-space:nowrap">
-        <button class="btn-accion" onclick="window.open('Ventas/ticket.php?id=<?= $v['id'] ?>', '_blank')">
+        <button class="btn-accion" onclick="window.open('Ventas/ticket.php?id=<?= $v['id'] ?>', '_blank', 'noopener')">
             <i class="fa-solid fa-receipt"></i> Ticket
         </button>
         <?php if ($es_admin && !$cancelada): ?>

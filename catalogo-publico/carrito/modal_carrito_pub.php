@@ -273,7 +273,7 @@ if (!isset($datosCarrito)) {
                     <div class="modal-footer border-0 pt-0">
                         <button type="button" class="btn btn-outline-dark rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" id="btnConfirmarPedido" class="btn text-white rounded-pill px-4 fw-bold" style="background-color: #b58c5a; border: none;" data-con-sesion="<?= $conSesion ? '1' : '0' ?>">
-                            <?= $conSesion ? 'Confirmar Pedido' : 'Continuar' ?>
+                            <?= $conSesion ? 'Continuar al pago' : 'Continuar' ?>
                         </button>
                     </div>
                 </form>

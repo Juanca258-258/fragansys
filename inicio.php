@@ -71,7 +71,7 @@ $es_admin        = ($rol === 'admin');
                 <i class="fa-solid fa-users"></i> Usuarios
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_reportes(); return false;">
-                <i class="fa-solid fa-chart-line"></i> Reportes
+                <i class="fa-solid fa-chart-column"></i> Reportes
             </a></li>
             <li><a href="#" class="nav-link" onclick="activar(this); cargar_historial(); return false;">
                 <i class="fa-solid fa-clock-rotate-left"></i> Historial
@@ -199,26 +199,37 @@ function cargar_ventas(){
     });
 }
 function modal_g_ventas(){
+    $("#modal_general .modal-dialog").addClass("modal-xl");
     $("#contenido_modal").load("Ventas/modal_g_ventas.php");
     $("#modal_general").modal('show');
 }
 // ── Aviso de pedidos nuevos desde la tienda ──
 // La página no se entera sola de los pedidos que entran; cada 30 s pregunta al servidor.
-var ultimo_pedido_visto = null;
+// También detecta cambios en pedidos que ya existían (un pago recibido, una cancelación del cliente)
+// para que la lista no se quede mostrando un estado viejo.
+var ultimo_pedido_visto = null, ultimo_cambio_visto = null, pagados_vistos = null;
 
 function revisar_pedidos(){
     $.getJSON("Pedidos/conteo_pedidos.php", function(r){
         $('#badge_pedidos').text(r.nuevos).toggle(r.nuevos > 0);
 
-        var llego_nuevo = ultimo_pedido_visto !== null && r.ultimo_id > ultimo_pedido_visto;
+        var primera_vez  = ultimo_pedido_visto === null;
+        var llego_nuevo  = !primera_vez && r.ultimo_id > ultimo_pedido_visto;
+        var llego_pago   = !primera_vez && r.pagados > pagados_vistos;
+        var hubo_cambio  = !primera_vez && r.ultimo_cambio !== ultimo_cambio_visto;
         ultimo_pedido_visto = r.ultimo_id;
-        if(!llego_nuevo) return;
+        ultimo_cambio_visto = r.ultimo_cambio;
+        pagados_vistos      = r.pagados;
+        if(!hubo_cambio && !llego_nuevo) return;
 
-        Swal.fire({
-            toast: true, position: 'top-end', icon: 'info', iconColor: '#c69a4c', timer: 6000, timerProgressBar: true,
-            showConfirmButton: true, confirmButtonText: 'Ver pedidos', confirmButtonColor: '#c69a4c',
-            title: 'Llegó un pedido nuevo'
-        }).then(function(res){ if(res.isConfirmed) ir_a('pedidos'); });
+        if(llego_nuevo || llego_pago){
+            Swal.fire({
+                toast: true, position: 'top-end', icon: llego_pago && !llego_nuevo ? 'success' : 'info', iconColor: '#c69a4c',
+                timer: 6000, timerProgressBar: true,
+                showConfirmButton: true, confirmButtonText: 'Ver pedidos', confirmButtonColor: '#c69a4c',
+                title: llego_nuevo ? 'Llegó un pedido nuevo' : 'Se recibió el pago de un pedido'
+            }).then(function(res){ if(res.isConfirmed) ir_a('pedidos'); });
+        }
 
         var viendo_pedidos = $('.sidebar-nav .nav-link.active').is('[onclick*="cargar_pedidos"]');
         if(viendo_pedidos && !$('#modal_general').hasClass('show')) cargar_pedidos();
@@ -240,9 +251,19 @@ function cargar_pedidos(){
             order: [],
             responsive: true,
             dom: 'tip',
-            columnDefs: [{ orderable: false, targets: -1 }]
+            columnDefs: [{ orderable: false, targets: -1 }],
+            initComplete: function(){ filtrar_pedidos(pedidos_filtro); }
         });
     });
+}
+// Filtro por estado de las tarjetas de Pedidos. Se recuerda para que no se pierda cuando la lista se recarga sola.
+var pedidos_filtro = '';
+function filtrar_pedidos(estado){
+    pedidos_filtro = estado;
+    $('.filtro-estado').removeClass('activo').filter('[data-estado="' + estado + '"]').addClass('activo');
+    if($.fn.DataTable.isDataTable('#tbl_pedidos')){
+        $('#tbl_pedidos').DataTable().column(6).search(estado ? '^' + estado + ' ' : '', true, false).draw();
+    }
 }
 function modal_detalle_pedido(id){
     $.post("Pedidos/modal_detalle_pedido.php", {id:id}, function(data){
@@ -307,6 +328,10 @@ function ir_a(seccion){
 // la tecla Esc no la cierra. Se enfoca una vez al abrir, sin la trampa de foco que les quitaba el foco a las alertas.
 $('#modal_general').on('shown.bs.modal', function(){
     if(!this.contains(document.activeElement)) this.focus();
+});
+// La caja de Ventas usa la ventana en tamaño extra grande; al cerrarla vuelve al tamaño normal.
+$('#modal_general').on('hidden.bs.modal', function(){
+    $(this).find('.modal-dialog').removeClass('modal-xl');
 });
 
 $(document).ready(function(){

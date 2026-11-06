@@ -16,12 +16,23 @@ if (!$venta) {
 
 $detalle = mysqli_query($conn,
     "SELECT vd.cantidad, vd.precio_unitario, vd.subtotal,
-            CONCAT(pf.nombre, ' ', IF(pr.tipo = 'frasco', 'Frasco ', 'Decant '),
-                   TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr.ml)), ' ml') AS producto
+            IF(vd.tipo = 'combo', CONCAT('Combo: ', c.nombre),
+               CONCAT(pf.nombre, ' ', IF(pr.tipo = 'frasco', 'Frasco ', 'Decant '),
+                      TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr.ml)), ' ml')) AS producto,
+            IF(vd.tipo = 'combo',
+               (SELECT GROUP_CONCAT(CONCAT(cp.cantidad, ' x ', pf2.nombre, ' ', IF(pr2.tipo = 'frasco', 'Frasco ', 'Decant '),
+                                           TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM pr2.ml)), ' ml')
+                                    ORDER BY cp.id SEPARATOR '|')
+                FROM combo_presentaciones cp
+                INNER JOIN presentaciones pr2 ON pr2.id = cp.presentacion_id
+                INNER JOIN perfumes pf2 ON pf2.id = pr2.perfume_id
+                WHERE cp.combo_id = vd.combo_id), NULL) AS piezas
      FROM venta_detalle vd
      LEFT JOIN presentaciones pr ON vd.presentacion_id = pr.id
      LEFT JOIN perfumes pf ON pr.perfume_id = pf.id
-     WHERE vd.venta_id = $id");
+     LEFT JOIN combos c ON vd.combo_id = c.id
+     WHERE vd.venta_id = $id
+     ORDER BY vd.id");
 
 $folio     = 'V-' . str_pad($venta['id'], 6, '0', STR_PAD_LEFT);
 $metodos   = ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'tarjeta' => 'Tarjeta', 'paypal' => 'PayPal'];
@@ -104,6 +115,9 @@ td { vertical-align: top; padding: 1px 0; }
         <tr><td><strong>Cant</strong></td><td class="der"><strong>P. unit.</strong></td><td class="der"><strong>Importe</strong></td></tr>
         <?php while ($d = mysqli_fetch_assoc($detalle)): ?>
         <tr><td colspan="3" class="producto"><?= htmlspecialchars($d['producto'] ?? 'Producto') ?></td></tr>
+        <?php foreach (array_filter(explode('|', (string)$d['piezas'])) as $pieza): ?>
+        <tr><td colspan="3" style="padding-left:10px; font-size:11px">· <?= htmlspecialchars($pieza) ?></td></tr>
+        <?php endforeach; ?>
         <tr>
             <td><?= (int)$d['cantidad'] ?></td>
             <td class="der"><?= dinero($d['precio_unitario']) ?></td>

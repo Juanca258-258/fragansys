@@ -6,8 +6,12 @@ require_once(__DIR__ . "/flujo_pedidos.php");
 // La vista trae cada pedido con el resumen de sus productos ya armado.
 $result = mysqli_query($conn, "SELECT * FROM vw_resumen_pedidos ORDER BY fecha_pedido DESC");
 
-$cuentas = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT SUM(estado_pedido = 'nuevo') AS por_confirmar, SUM(estado_pedido = 'enviado') AS en_camino FROM pedidos"));
+// Cuántos pedidos hay en cada estado, para las tarjetas de filtro.
+$cuentas = array_fill_keys(array_keys(ETIQUETAS_ESTADO), 0);
+$res = mysqli_query($conn, "SELECT estado_pedido, COUNT(*) AS n FROM pedidos GROUP BY estado_pedido");
+while ($c = mysqli_fetch_assoc($res)) {
+    $cuentas[$c["estado_pedido"]] = (int)$c["n"];
+}
 
 $estilo_pedido = [
     'nuevo'          => ['aviso',  'fa-bell'],
@@ -30,18 +34,24 @@ $estilo_pago = [
         <h1>Pedidos</h1>
         <div class="sub">Órdenes de compra realizadas desde la tienda en línea</div>
     </div>
-    <div class="acciones-cab">
-        <span class="dato-cab"><i class="fa-solid fa-bell"></i> <strong><?= (int)$cuentas['por_confirmar'] ?></strong> por confirmar</span>
-        <span class="dato-cab"><i class="fa-solid fa-truck-fast"></i> <strong><?= (int)$cuentas['en_camino'] ?></strong> en camino</span>
-    </div>
 </div>
 
 <div class="panel panel-modulo">
-<div class="d-flex justify-content-between align-items-center mb-3 gap-3">
+<div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap barra-pedidos">
     <div class="input-group input-busqueda">
         <span class="input-group-text"><i class="fa-solid fa-magnifying-glass text-muted" style="font-size:.8rem"></i></span>
         <input type="text" class="form-control" placeholder="Buscar pedido o cliente..."
                oninput="if($.fn.DataTable.isDataTable('#tbl_pedidos')){$('#tbl_pedidos').DataTable().search(this.value).draw();}">
+    </div>
+    <div class="filtros-estado">
+        <button type="button" class="filtro-estado" data-estado="" onclick="filtrar_pedidos('')">
+            <i class="fa-solid fa-layer-group"></i><span class="num"><?= array_sum($cuentas) ?></span><span class="txt">Todos</span>
+        </button>
+        <?php foreach (ETIQUETAS_ESTADO as $clave => $etiqueta): [$clase, $ico] = $estilo_pedido[$clave]; ?>
+        <button type="button" class="filtro-estado <?= $clase ?><?= $cuentas[$clave] ? '' : ' vacio-f' ?>" data-estado="<?= $clave ?>" onclick="filtrar_pedidos('<?= $clave ?>')">
+            <i class="fa-solid <?= $ico ?>"></i><span class="num"><?= $cuentas[$clave] ?></span><span class="txt"><?= $etiqueta ?></span>
+        </button>
+        <?php endforeach; ?>
     </div>
 </div>
 
@@ -80,7 +90,7 @@ $estilo_pago = [
     </td>
     <td class="fw-semibold">$<?= number_format($fila['total'], 2) ?></td>
     <td><span class="estado <?= $pago_clase ?>"><i class="fa-solid <?= $pago_ico ?>"></i> <?= $pago_txt ?></span></td>
-    <td><span class="estado <?= $ped_clase ?>"><i class="fa-solid <?= $ped_ico ?>"></i> <?= ETIQUETAS_ESTADO[$fila['estado_pedido']] ?? $fila['estado_pedido'] ?></span></td>
+    <td data-search="<?= $fila['estado_pedido'] ?> <?= ETIQUETAS_ESTADO[$fila['estado_pedido']] ?? '' ?>"><span class="estado <?= $ped_clase ?>"><i class="fa-solid <?= $ped_ico ?>"></i> <?= ETIQUETAS_ESTADO[$fila['estado_pedido']] ?? $fila['estado_pedido'] ?></span></td>
     <td>
         <button class="btn-accion" onclick="modal_detalle_pedido(<?= $fila['pedido_id'] ?>)">
             <i class="fa-solid fa-eye"></i> Ver pedido

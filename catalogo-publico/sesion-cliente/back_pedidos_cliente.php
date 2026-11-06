@@ -93,7 +93,10 @@ function cancelarPedidoCliente($db, $clienteId, $pedidoId) {
         return $resultado;
     }
 
-    // La condición de estado va en el UPDATE por si el administrador lo cambió en este mismo momento
+    // La condición de estado va en el UPDATE por si el administrador lo cambió en este mismo momento.
+    // Si ya estaba pagado, su inventario se descontó al pagar: se devuelve en la misma transacción.
+    require_once __DIR__ . '/../../pagos/inventario_pedido.php';
+    $db->begin_transaction();
     $stmt = $db->prepare(
         "UPDATE pedidos SET estado_pedido = 'cancelado'
          WHERE id = ? AND cliente_id = ? AND estado_pedido IN ('" . implode("','", $ESTADOS_CANCELABLES) . "')"
@@ -102,9 +105,15 @@ function cancelarPedidoCliente($db, $clienteId, $pedidoId) {
     $stmt->execute();
 
     if ($stmt->affected_rows !== 1) {
+        $db->rollback();
         $resultado['message'] = 'Este pedido ya no se puede cancelar.';
         return $resultado;
     }
+    $pago = $db->query("SELECT estado_pago FROM pedidos WHERE id = " . (int)$pedidoId)->fetch_assoc();
+    if ($pago['estado_pago'] === 'pagado') {
+        devolver_inventario_pedido($db, $pedidoId);
+    }
+    $db->commit();
 
     require_once __DIR__ . '/../../helpers.php';
     registrar_movimiento($db, 'Pedidos', 'Cancelar (cliente)',
@@ -164,11 +173,19 @@ function htmlSeguimientoPedido($pedido) {
             <?php $i++; endforeach; ?>
         </div>
 
-        <?php if (pedidoCancelable($pedido['estado_pedido'])): ?>
-            <div class="text-end mt-3">
-                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="abrirCancelarPedido(<?= $id ?>)">
-                    <i class="bi bi-x-circle me-1"></i> Cancelar pedido
-                </button>
+        <?php $porPagar = in_array($pedido['estado_pago'], array('pendiente', 'fallido'), true); ?>
+        <?php if ($porPagar || pedidoCancelable($pedido['estado_pedido'])): ?>
+            <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
+                <?php if (pedidoCancelable($pedido['estado_pedido'])): ?>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="abrirCancelarPedido(<?= $id ?>)">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar pedido
+                    </button>
+                <?php endif; ?>
+                <?php if ($porPagar): ?>
+                    <a href="../pago/indexPago.php?pedido=<?= $id ?>" class="btn btn-sm rounded-pill px-3 text-white fw-bold" style="background-color: #b58c5a;">
+                        <i class="bi bi-credit-card me-1"></i> Pagar ahora
+                    </a>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     <?php endif; ?>

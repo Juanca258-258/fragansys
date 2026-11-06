@@ -193,7 +193,7 @@ require_once __DIR__ . '/back_carrito_pub.php';
                     ['campoNombre', 'campoTelefono', 'campoDireccion', 'campoPassword', 'campoConfirmarPassword']
                         .forEach(id => mostrarCampo(id, true));
                     document.getElementById('bloqueConfirmacion').classList.remove('d-none');
-                    btn.textContent = 'Confirmar Pedido';
+                    btn.textContent = 'Continuar al pago';
                 }
             });
         }
@@ -224,7 +224,7 @@ require_once __DIR__ . '/back_carrito_pub.php';
                 mostrarCampo('campoTelefono', data.falta_telefono);
                 mostrarCampo('campoDireccion', data.falta_direccion);
                 document.getElementById('bloqueConfirmacion').classList.remove('d-none');
-                btn.textContent = 'Confirmar Pedido';
+                btn.textContent = 'Continuar al pago';
             });
         }
 
@@ -244,11 +244,11 @@ require_once __DIR__ . '/back_carrito_pub.php';
 
             enviarCheckout('realizar_pedido', new FormData(e.target), 'Ocurrió un error al registrar el pedido.')
             .then(data => {
-                alert(data.message);
                 if (data.status === 'success') {
-                    // Con sesión, el cliente va a sus pedidos para darle seguimiento
-                    location.href = btn.dataset.conSesion === '1' ? '../sesion-cliente/indexP.php' : '../index.php';
+                    // El pedido ya quedó registrado como pendiente: el cliente pasa a pagarlo con PayPal
+                    location.href = data.pagar_url;
                 } else {
+                    alert(data.message);
                     btn.disabled = false;
                 }
             });

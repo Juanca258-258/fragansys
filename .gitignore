@@ -3,3 +3,6 @@
 # Imagenes subidas: cada equipo prueba con las suyas, no se sincronizan
 uploads/*/*
 !uploads/*/.gitkeep
+
+# Claves de PayPal: cada PC tiene su archivo
+paypal_config.php

@@ -89,6 +89,24 @@ if ($accion == "actualizar") {
     $anterior = mysqli_fetch_assoc(mysqli_query($conn, "SELECT imagen, precio FROM combos WHERE id=$id AND activo=1"));
     if (!$anterior) responder(false, 'El combo no existe.');
 
+    // Al cancelar una venta se devuelven las piezas que el combo tiene hoy; si ya se vendió y cambiaran,
+    // se devolverían piezas distintas a las que salieron. Por eso sus productos quedan fijos.
+    $productos_actuales = [];
+    $res = mysqli_query($conn, "SELECT presentacion_id, cantidad FROM combo_presentaciones WHERE combo_id=$id");
+    while ($f = mysqli_fetch_assoc($res)) {
+        $productos_actuales[(int)$f['presentacion_id']] = (int)$f['cantidad'];
+    }
+    $nuevos = $d['productos'];
+    ksort($productos_actuales);
+    ksort($nuevos);
+    if ($productos_actuales !== $nuevos) {
+        $vendido = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT (SELECT COUNT(*) FROM venta_detalle WHERE combo_id=$id) + (SELECT COUNT(*) FROM pedido_detalle WHERE combo_id=$id) AS n"))['n'];
+        if ($vendido > 0) {
+            responder(false, 'Este combo ya se vendió, así que sus productos no se pueden cambiar (sí el nombre, la descripción, el precio y la foto). Para cambiar los productos, crea un combo nuevo y elimina este.');
+        }
+    }
+
     $subida = subir_imagen('imagen', 'uploads/combos');
     if (!$subida['ok']) responder(false, $subida['error']);
     $imagen = $subida['archivo'] ?? $anterior['imagen'];

@@ -135,7 +135,8 @@ if ($accion === 'actualizar') {
         $respuesta['falta_direccion'] = empty($cliente['direccion']);
     }
 } elseif ($accion === 'realizar_pedido') {
-    // Por ahora solo se registra el pedido (estado_pago = 'pendiente'); aún no se redirige a PayPal.
+    // Se registra el pedido con estado_pago = 'pendiente' y el cliente pasa a pagarlo en ../pago/indexPago.php.
+    // El inventario se descuenta hasta que el pago queda confirmado (ver pagos/inventario_pedido.php).
     require_once __DIR__ . '/../../conexion.php';
     require_once __DIR__ . '/../../helpers.php';
 
@@ -303,9 +304,12 @@ if ($accion === 'actualizar') {
 
                 $_SESSION['carrito'] = array();
                 unset($_SESSION['checkout_cliente_id']);
+                // Permite pagar este pedido desde este navegador aunque el cliente no haya iniciado sesión
+                $_SESSION['pedidos_por_pagar'][] = (int)$pedidoId;
                 $respuesta['status']    = 'success';
-                $respuesta['message']   = 'Tu pedido #' . $pedidoId . ' fue registrado. Te contactaremos para confirmar el pago.';
+                $respuesta['message']   = 'Tu pedido #' . $pedidoId . ' fue registrado.';
                 $respuesta['pedido_id'] = $pedidoId;
+                $respuesta['pagar_url'] = '../pago/indexPago.php?pedido=' . $pedidoId;
             } catch (Exception $e) {
                 $conn->rollback();
                 $respuesta['message'] = 'No se pudo registrar el pedido. Intenta de nuevo.';
