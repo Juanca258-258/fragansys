@@ -30,6 +30,12 @@ if ($accion == "avanzar_estado") {
 
     registrar_movimiento($conn, 'Pedidos', 'Cambiar estado',
         "Pedido #$id: " . ETIQUETAS_ESTADO[$actual] . " → " . ETIQUETAS_ESTADO[$siguiente]);
+
+    // Aviso al cliente de que su pedido va en camino. Si el correo falla, el estado ya cambió igual.
+    if ($siguiente === 'enviado') {
+        require_once __DIR__ . '/../correos/correos.php';
+        correo_pedido_enviado($conn, $id);
+    }
     responder(true);
 }
 

@@ -6,3 +6,6 @@ uploads/*/*
 
 # Claves de PayPal: cada PC tiene su archivo
 paypal_config.php
+
+# Datos del correo (PHPMailer): cada PC tiene su archivo
+mail_config.php

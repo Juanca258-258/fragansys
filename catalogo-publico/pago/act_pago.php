@@ -111,6 +111,11 @@ if ($accion === 'capturar') {
     registrar_movimiento($conn, 'Pedidos', 'Pago en línea',
         "Pedido #$pedidoId pagado con PayPal por $" . number_format($pedido['total'], 2) . " (captura {$datos['captura_id']})", null);
 
+    // Confirmación al cliente y aviso al administrador. Si un correo falla, el pago ya quedó registrado igual.
+    require_once __DIR__ . '/../../correos/correos.php';
+    correo_pedido_pagado($conn, $pedidoId);
+    correo_admin_nuevo_pedido($conn, $pedidoId);
+
     // Ya no hace falta recordarlo como "por pagar" en este navegador.
     if (isset($_SESSION['pedidos_por_pagar'])) {
         $_SESSION['pedidos_por_pagar'] = array_values(array_diff($_SESSION['pedidos_por_pagar'], array($pedidoId)));
