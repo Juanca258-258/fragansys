@@ -255,7 +255,8 @@ if ($accion === 'actualizar') {
         if ($error !== '') {
             $respuesta['message'] = $error;
         } else {
-            $costoEnvio = 0.00; // Pendiente de definir la tarifa de envío
+            // Envío según Configuración, sobre el subtotal recalculado con los precios de la BD
+            $costoEnvio = calcular_envio(obtener_config($conn), $subtotal);
             $total      = $subtotal + $costoEnvio;
 
             mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT); // Errores de BD como excepciones (PHP 7)

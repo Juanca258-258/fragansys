@@ -64,6 +64,16 @@ function obtener_config($conn) {
     return $config;
 }
 
+// Costo de envío de un pedido en línea según Configuración: el costo fijo, o 0 si el subtotal
+// llega al monto de "envío gratis desde" (vacío = el envío nunca es gratis).
+function calcular_envio($config, $subtotal) {
+    $gratis_desde = $config['envio_gratis_desde'];
+    if ($gratis_desde !== '' && (float)$gratis_desde > 0 && round((float)$subtotal, 2) >= (float)$gratis_desde) {
+        return 0.00;
+    }
+    return max(0, round((float)$config['envio_costo'], 2));
+}
+
 function registrar_movimiento($conn, $modulo, $accion, $descripcion, $usuario_id = null) {
     $usuario_id = $usuario_id ?? ($_SESSION['id_usuario'] ?? null);
     $stmt = $conn->prepare("INSERT INTO movimientos (usuario_id, modulo, accion, descripcion) VALUES (?,?,?,?)");

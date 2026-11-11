@@ -203,7 +203,7 @@ if (!clienteSesionActiva()) {
 
                         <div class="ms-auto mb-4" style="max-width: 280px;">
                             <div class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span>${formatoDinero(p.subtotal)}</span></div>
-                            <div class="d-flex justify-content-between small text-muted"><span>Envío</span><span>${formatoDinero(p.costo_envio)}</span></div>
+                            <div class="d-flex justify-content-between small text-muted"><span>Envío</span><span>${p.costo_envio > 0 ? formatoDinero(p.costo_envio) : 'Gratis'}</span></div>
                             <div class="d-flex justify-content-between fw-bold text-brown fs-5 mt-1 pt-1 border-top"><span>Total</span><span>${formatoDinero(p.total)}</span></div>
                         </div>
 

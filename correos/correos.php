@@ -192,6 +192,34 @@ function correo_pedido_enviado($conn, $pedido_id) {
     }
 }
 
+// Al cliente: su pedido ya se entregó.
+function correo_pedido_entregado($conn, $pedido_id) {
+    try {
+        $pedido = correo_datos_pedido($conn, $pedido_id);
+        if (!$pedido) {
+            return false;
+        }
+        $negocio = obtener_config($conn)['negocio_nombre'];
+        $base    = correo_url_base();
+
+        $contenido = '<p>Hola ' . correo_e($pedido['cliente_nombre']) . ',</p>'
+            . '<p>¡Su <strong>pedido #' . (int)$pedido['id'] . '</strong> ha sido entregado en su domicilio con éxito!</p>'
+            . '<p style="background:#fbf8f4;border-left:3px solid #b58c5a;padding:10px 14px;font-size:14px;">'
+            . '<strong>Entregado en:</strong><br>' . correo_e($pedido['direccion_entrega']) . '</p>'
+            . '<p style="font-size:14px;color:#9a8f84;text-transform:uppercase;letter-spacing:1px;margin:20px 0 0;">Detalles del pedido</p>'
+            . correo_tabla_productos($pedido)
+            . '<p style="font-size:14px;color:#555;">Gracias por su compra. Esperamos que disfrute sus fragancias.</p>';
+
+        $html = correo_plantilla($negocio, '¡Pedido entregado!', $contenido,
+                                 'Ver mis pedidos', $base ? $base . '/catalogo-publico/sesion-cliente/indexP.php' : '');
+        return correo_enviar($pedido['cliente_correo'], $pedido['cliente_nombre'],
+                             "Tu pedido #{$pedido['id']} fue entregado", $html);
+    } catch (Throwable $e) {
+        error_log("Correo de entrega del pedido $pedido_id: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Al administrador: un pedido del catálogo ya quedó pagado y hay que prepararlo.
 function correo_admin_nuevo_pedido($conn, $pedido_id) {
     try {

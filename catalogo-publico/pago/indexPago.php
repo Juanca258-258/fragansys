@@ -61,11 +61,9 @@ $conSesion = isset($_SESSION['cliente_id']);
                             <span class="fw-semibold text-nowrap ms-3">$<?= number_format($d['subtotal'], 2) ?></span>
                         </div>
                     <?php endforeach; ?>
-                    <?php if ((float)$pedido['costo_envio'] > 0): ?>
-                        <div class="d-flex justify-content-between pt-2 small text-muted">
-                            <span>Envío</span><span>$<?= number_format($pedido['costo_envio'], 2) ?></span>
-                        </div>
-                    <?php endif; ?>
+                    <div class="d-flex justify-content-between pt-2 small text-muted">
+                        <span>Envío</span><span><?= (float)$pedido['costo_envio'] > 0 ? '$' . number_format($pedido['costo_envio'], 2) : 'Gratis' ?></span>
+                    </div>
                     <div class="d-flex justify-content-between align-items-center border-top mt-2 pt-3">
                         <span class="font-serif fw-bold text-brown fs-5">Total</span>
                         <span class="fs-3 fw-bold text-gold">$<?= number_format($pedido['total'], 2) ?> <small class="fs-6 text-muted">MXN</small></span>

@@ -179,14 +179,25 @@ if (!isset($datosCarrito)) {
                 
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="text-secondary font-serif">Envío</span>
-                    <span class="text-success small fw-bold px-2 py-1 bg-success-subtle rounded-pill">Por calcular</span>
+                    <?php if ($datosCarrito['envio'] > 0): ?>
+                        <span class="fw-bold fs-6 text-white" id="cart-envio">$<?= number_format($datosCarrito['envio'], 2) ?></span>
+                    <?php else: ?>
+                        <span class="text-success small fw-bold px-2 py-1 bg-success-subtle rounded-pill" id="cart-envio">Gratis</span>
+                    <?php endif; ?>
                 </div>
-                
+
+                <?php if ($datosCarrito['falta_envio_gratis'] > 0): ?>
+                    <p class="small text-center mb-3" style="color: #d9c3a5;">
+                        <i class="bi bi-truck me-1"></i>
+                        Agrega <strong>$<?= number_format($datosCarrito['falta_envio_gratis'], 2) ?></strong> más y tu envío es gratis.
+                    </p>
+                <?php endif; ?>
+
                 <hr class="border-secondary my-3">
-                
+
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <span class="fs-5 font-serif fw-bold">Total Final</span>
-                    <span class="fs-3 fw-bold text-gold" id="cart-total">$<?= number_format($datosCarrito['subtotal'], 2) ?></span>
+                    <span class="fs-3 fw-bold text-gold" id="cart-total">$<?= number_format($datosCarrito['total'], 2) ?></span>
                 </div>
                 
                 <button type="button" class="btn text-white w-100 rounded-pill py-3 text-uppercase font-serif fw-bold shadow" style="background-color: #b58c5a; border: none; letter-spacing: 1px;" data-bs-toggle="modal" data-bs-target="#modalCheckout">
@@ -264,9 +275,15 @@ if (!isset($datosCarrito)) {
                                 <label class="form-label small text-muted">Notas para este pedido (opcional)</label>
                                 <textarea name="notas" class="form-control" rows="2" maxlength="255"></textarea>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                            <div class="d-flex justify-content-between small text-muted border-top pt-3">
+                                <span>Productos</span><span>$<?= number_format($datosCarrito['subtotal'], 2) ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mb-2">
+                                <span>Envío</span><span><?= $datosCarrito['envio'] > 0 ? '$' . number_format($datosCarrito['envio'], 2) : 'Gratis' ?></span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
                                 <span class="font-serif fw-bold text-brown">Total a pagar</span>
-                                <span class="fs-5 fw-bold text-gold">$<?= number_format($datosCarrito['subtotal'], 2) ?></span>
+                                <span class="fs-5 fw-bold text-gold">$<?= number_format($datosCarrito['total'], 2) ?></span>
                             </div>
                         </div>
                     </div>

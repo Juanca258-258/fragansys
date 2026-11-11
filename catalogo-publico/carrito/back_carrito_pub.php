@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../../conexion.php';
+require_once __DIR__ . '/../../helpers.php';
 
 // Productos que incluye un combo, para mostrarlos desplegables en el carrito
 function obtenerProductosCombo($db, $comboId) {
@@ -75,6 +76,15 @@ if (isset($conexion) && is_object($conexion)) {
 }
 
 $datosCarrito = obtenerCarritoPublico($dbConn);
+
+// Envío según Configuración (misma regla que al registrar el pedido en act_carrito_pub.php)
+$configTienda = $dbConn ? obtener_config($dbConn) : CONFIG_DEFECTO;
+$datosCarrito['envio'] = calcular_envio($configTienda, $datosCarrito['subtotal']);
+$datosCarrito['total'] = $datosCarrito['subtotal'] + $datosCarrito['envio'];
+// Cuánto le falta al cliente para el envío gratis (0 si ya lo tiene o si nunca es gratis)
+$gratisDesde = $configTienda['envio_gratis_desde'] !== '' ? (float)$configTienda['envio_gratis_desde'] : 0;
+$datosCarrito['falta_envio_gratis'] = ($gratisDesde > 0 && $datosCarrito['envio'] > 0)
+    ? $gratisDesde - $datosCarrito['subtotal'] : 0;
 
 // Cliente con sesión iniciada: el checkout usa los datos de su cuenta sin pedir correo ni contraseña
 function obtenerClienteSesion($db) {
