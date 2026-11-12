@@ -37,10 +37,20 @@ foreach (array_keys(CAMPOS_CONFIG) as $clave) {
 if ($v['negocio_nombre'] === '') responder(false, 'El nombre del negocio es obligatorio.');
 if (strlen($v['negocio_nombre']) > 100) responder(false, 'El nombre del negocio es demasiado largo (máximo 100 caracteres).');
 if (strlen($v['negocio_direccion']) > 200) responder(false, 'La dirección es demasiado larga (máximo 200 caracteres).');
-if (strlen($v['negocio_telefono']) > 20) responder(false, 'El teléfono es demasiado largo (máximo 20 caracteres).');
+// Teléfono: se ignoran espacios, guiones y paréntesis; deben quedar exactamente 10 dígitos.
+$v['negocio_telefono'] = preg_replace('/[\s\-().]/', '', $v['negocio_telefono']);
+if ($v['negocio_telefono'] !== '' && !preg_match('/^\d{10}$/', $v['negocio_telefono'])) responder(false, 'El teléfono debe tener 10 dígitos (solo números).');
 if ($v['negocio_correo'] !== '' && !filter_var($v['negocio_correo'], FILTER_VALIDATE_EMAIL)) responder(false, 'El correo no es válido.');
-$v['negocio_rfc'] = strtoupper($v['negocio_rfc']);
-if ($v['negocio_rfc'] !== '' && !preg_match('/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/u', $v['negocio_rfc'])) responder(false, 'El RFC no tiene un formato válido (12 o 13 caracteres).');
+// RFC: 3 letras (empresa) o 4 letras (persona física) + fecha AAMMDD + 3 de homoclave. Se ignoran espacios y guiones.
+$v['negocio_rfc'] = mb_strtoupper(preg_replace('/[\s\-]/', '', $v['negocio_rfc']), 'UTF-8');
+if ($v['negocio_rfc'] !== '') {
+    $rfc_ok = preg_match('/^[A-ZÑ&]{3,4}(\d{2})(\d{2})(\d{2})[A-Z0-9]{3}$/u', $v['negocio_rfc'], $m)
+              && checkdate((int)$m[2], (int)$m[3], 2000 + (int)$m[1]);
+    if (!$rfc_ok) {
+        responder(false, 'El RFC no es válido. Lleva letras, la fecha y la homoclave: 4 letras + AAMMDD + 3 caracteres '
+                       . '(persona física, ej. GODE561231GR8) o 3 letras + AAMMDD + 3 caracteres (empresa, ej. ABC010101AB1).');
+    }
+}
 if (strlen($v['ticket_mensaje']) > 150) responder(false, 'El mensaje del ticket es demasiado largo (máximo 150 caracteres).');
 
 if (!is_numeric($v['envio_costo']) || (float)$v['envio_costo'] < 0) responder(false, 'El costo de envío debe ser 0 o más.');

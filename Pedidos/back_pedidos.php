@@ -32,13 +32,16 @@ if ($accion == "avanzar_estado") {
         "Pedido #$id: " . ETIQUETAS_ESTADO[$actual] . " → " . ETIQUETAS_ESTADO[$siguiente]);
 
     // Aviso al cliente cuando su pedido va en camino o ya se entregó. Si el correo falla, el estado ya cambió igual.
+    // El correo tarda varios segundos, así que primero se contesta y luego se envía.
     if ($siguiente === 'enviado' || $siguiente === 'entregado') {
+        responder_y_continuar(json_encode(['ok' => true]));
         require_once __DIR__ . '/../correos/correos.php';
         if ($siguiente === 'enviado') {
             correo_pedido_enviado($conn, $id);
         } else {
             correo_pedido_entregado($conn, $id);
         }
+        exit;
     }
     responder(true);
 }

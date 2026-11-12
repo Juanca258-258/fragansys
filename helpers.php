@@ -33,11 +33,115 @@ function subir_imagen($campo, $carpeta_relativa) {
     $nombre_final  = uniqid('img_', true) . '.' . $ext;
     $ruta_absoluta = __DIR__ . '/' . $carpeta_relativa . '/' . $nombre_final;
 
-    if (!move_uploaded_file($archivo['tmp_name'], $ruta_absoluta)) {
+    // Se guarda una copia reducida (no se mueve el archivo: en Windows, mover conserva los permisos de la
+    // carpeta temporal y luego el usuario no puede abrir la imagen; un archivo nuevo toma los de uploads).
+    if (!is_uploaded_file($archivo['tmp_name'])
+        || (!reducir_imagen($archivo['tmp_name'], $ruta_absoluta) && !copy($archivo['tmp_name'], $ruta_absoluta))) {
         return ['ok' => false, 'error' => 'No se pudo guardar la imagen en el servidor.'];
     }
+    @unlink($archivo['tmp_name']);
 
     return ['ok' => true, 'archivo' => $carpeta_relativa . '/' . $nombre_final];
+}
+
+/**
+ * Guarda en $destino una versión de la imagen de máximo $max px por lado, en el mismo formato
+ * (JPG, PNG o WEBP; PNG y WEBP conservan la transparencia). Las fotos de celular se enderezan.
+ * Devuelve false si no se pudo procesar (quien llama decide si guarda el original).
+ */
+function reducir_imagen($origen, $destino, $max = 800) {
+    $info = @getimagesize($origen);
+    if (!$info || !function_exists('imagecreatetruecolor')) return false;
+    [$ancho, $alto, $tipo] = $info;
+    $giro = $tipo === IMAGETYPE_JPEG ? orientacion_jpeg($origen) : 1;
+
+    // Ya es chica y no hay que girarla: se deja tal cual para no perder calidad.
+    if (max($ancho, $alto) <= $max && $giro === 1 && filesize($origen) <= 300 * 1024) {
+        return copy($origen, $destino);
+    }
+
+    @ini_set('memory_limit', '256M'); // una foto de 12 MP ocupa ~50 MB al abrirla
+    switch ($tipo) {
+        case IMAGETYPE_JPEG: $img = @imagecreatefromjpeg($origen); break;
+        case IMAGETYPE_PNG:  $img = @imagecreatefrompng($origen); break;
+        case IMAGETYPE_WEBP: $img = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($origen) : false; break;
+        default: return false;
+    }
+    if (!$img) return false;
+
+    // EXIF: 3 = de cabeza, 6 = girada a la derecha, 8 = girada a la izquierda.
+    if (in_array($giro, [3, 6, 8], true)) {
+        $girada = imagerotate($img, [3 => 180, 6 => -90, 8 => 90][$giro], 0);
+        imagedestroy($img);
+        $img = $girada;
+        $ancho = imagesx($img);
+        $alto  = imagesy($img);
+    }
+
+    $escala = min(1, $max / max($ancho, $alto));
+    $nuevo_ancho = max(1, (int)round($ancho * $escala));
+    $nuevo_alto  = max(1, (int)round($alto * $escala));
+    $lienzo = imagecreatetruecolor($nuevo_ancho, $nuevo_alto);
+    if ($tipo !== IMAGETYPE_JPEG) {
+        imagealphablending($lienzo, false);
+        imagesavealpha($lienzo, true);
+        imagefill($lienzo, 0, 0, imagecolorallocatealpha($lienzo, 0, 0, 0, 127));
+    }
+    imagecopyresampled($lienzo, $img, 0, 0, 0, 0, $nuevo_ancho, $nuevo_alto, $ancho, $alto);
+    imagedestroy($img);
+
+    if ($tipo === IMAGETYPE_JPEG)      $ok = imagejpeg($lienzo, $destino, 82);
+    elseif ($tipo === IMAGETYPE_PNG)   $ok = imagepng($lienzo, $destino, 6);
+    else                               $ok = imagewebp($lienzo, $destino, 82);
+    imagedestroy($lienzo);
+    return $ok;
+}
+
+/**
+ * Lee la orientación EXIF de un JPG (1 = normal) sin necesitar la extensión exif de PHP.
+ */
+function orientacion_jpeg($ruta) {
+    $f = @fopen($ruta, 'rb');
+    if (!$f) return 1;
+    $datos = fread($f, 65536);
+    fclose($f);
+    $pos = strpos($datos, "Exif\0\0");
+    if ($pos === false) return 1;
+    $tiff = substr($datos, $pos + 6);
+    if (strlen($tiff) < 8) return 1;
+    $le = substr($tiff, 0, 2) === 'II';
+    $u16 = function ($o) use ($tiff, $le) { return strlen($tiff) >= $o + 2 ? unpack($le ? 'v' : 'n', substr($tiff, $o, 2))[1] : 0; };
+    $u32 = function ($o) use ($tiff, $le) { return strlen($tiff) >= $o + 4 ? unpack($le ? 'V' : 'N', substr($tiff, $o, 4))[1] : 0; };
+    $ifd = $u32(4);
+    $entradas = $u16($ifd);
+    for ($i = 0; $i < $entradas; $i++) {
+        $e = $ifd + 2 + $i * 12;
+        if ($u16($e) === 0x0112) {
+            $valor = $u16($e + 8);
+            return ($valor >= 1 && $valor <= 8) ? $valor : 1;
+        }
+    }
+    return 1;
+}
+
+/**
+ * Manda ya la respuesta al navegador y deja que el script siga trabajando (p. ej. enviando correos,
+ * que tardan varios segundos) sin que la persona tenga que esperar. Después de llamarla ya no se
+ * puede mandar nada más al navegador ni cambiar la sesión.
+ */
+function responder_y_continuar($texto) {
+    ignore_user_abort(true);   // si el navegador ya se fue, el script termina su trabajo igual
+    @set_time_limit(120);
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close(); // libera la sesión para que las demás pantallas no se queden esperando
+    }
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    header('Connection: close');
+    header('Content-Length: ' . strlen($texto));
+    echo $texto;
+    flush();
 }
 
 // Valores por defecto mientras no se hayan guardado en Configuración.

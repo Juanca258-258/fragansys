@@ -47,7 +47,8 @@ $e = function ($clave) use ($c) { return htmlspecialchars($c[$clave]); };
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label>Teléfono <span class="text-muted">(opcional)</span></label>
-                    <input type="text" name="negocio_telefono" class="form-control" maxlength="20" value="<?= $e('negocio_telefono') ?>">
+                    <input type="tel" name="negocio_telefono" class="form-control" inputmode="numeric"
+                           placeholder="10 dígitos" oninput="this.value = this.value.replace(/\D/g, '').slice(0, 10)" value="<?= $e('negocio_telefono') ?>">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label>Correo <span class="text-muted">(opcional)</span></label>
@@ -56,7 +57,8 @@ $e = function ($clave) use ($c) { return htmlspecialchars($c[$clave]); };
             </div>
             <div class="mb-1">
                 <label>RFC <span class="text-muted">(opcional)</span></label>
-                <input type="text" name="negocio_rfc" class="form-control" maxlength="13" value="<?= $e('negocio_rfc') ?>" style="text-transform:uppercase; max-width:260px">
+                <input type="text" name="negocio_rfc" class="form-control" maxlength="15" placeholder="Ej. GODE561231GR8" value="<?= $e('negocio_rfc') ?>" style="text-transform:uppercase; max-width:260px">
+                <div class="form-text">Letras + fecha + homoclave: 13 caracteres persona física, 12 empresa.</div>
             </div>
         </div>
     </div>

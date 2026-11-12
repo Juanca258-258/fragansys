@@ -111,16 +111,18 @@ if ($accion === 'capturar') {
     registrar_movimiento($conn, 'Pedidos', 'Pago en línea',
         "Pedido #$pedidoId pagado con PayPal por $" . number_format($pedido['total'], 2) . " (captura {$datos['captura_id']})", null);
 
-    // Confirmación al cliente y aviso al administrador. Si un correo falla, el pago ya quedó registrado igual.
-    require_once __DIR__ . '/../../correos/correos.php';
-    correo_pedido_pagado($conn, $pedidoId);
-    correo_admin_nuevo_pedido($conn, $pedidoId);
-
     // Ya no hace falta recordarlo como "por pagar" en este navegador.
     if (isset($_SESSION['pedidos_por_pagar'])) {
         $_SESSION['pedidos_por_pagar'] = array_values(array_diff($_SESSION['pedidos_por_pagar'], array($pedidoId)));
     }
-    responderPago(array('status' => 'success', 'message' => '¡Pago recibido! Tu pedido #' . $pedidoId . ' ya está pagado.'));
+
+    // Primero se le confirma al cliente y después se envían los correos (tardan varios segundos cada uno).
+    // Si un correo falla, el pago ya quedó registrado igual.
+    responder_y_continuar(json_encode(array('status' => 'success', 'message' => '¡Pago recibido! Tu pedido #' . $pedidoId . ' ya está pagado.')));
+    require_once __DIR__ . '/../../correos/correos.php';
+    correo_pedido_pagado($conn, $pedidoId);
+    correo_admin_nuevo_pedido($conn, $pedidoId);
+    exit;
 }
 
 responderPago(array('status' => 'error', 'message' => 'Acción no válida.'));
