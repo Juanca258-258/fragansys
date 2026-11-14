@@ -21,15 +21,31 @@ if ($accion == "avanzar_estado") {
     }
 
     // La condición sobre el estado actual evita que un doble clic, o dos personas a la vez, lo avancen dos pasos.
-    $stmt = $conn->prepare("UPDATE pedidos SET estado_pedido = ? WHERE id = ? AND estado_pedido = ?");
-    $stmt->bind_param("sis", $siguiente, $id, $actual);
+    if ($siguiente === 'enviado') {
+        // Fragansys no hace el envío: se entrega a una paquetería y se guarda su número de guía.
+        $paqueteria = trim($_POST['paqueteria'] ?? '');
+        $guia       = strtoupper(preg_replace('/\s+/', '', $_POST['numero_guia'] ?? ''));
+        if ($paqueteria === '' || mb_strlen($paqueteria) > 60) {
+            responder(false, 'Escribe la paquetería con la que se envió el pedido (máximo 60 caracteres).');
+        }
+        if (!preg_match('/^[A-Z0-9\-]{6,40}$/', $guia)) {
+            responder(false, 'El número de guía no es válido: deben ser de 6 a 40 letras o números, sin espacios.');
+        }
+        $stmt = $conn->prepare("UPDATE pedidos SET estado_pedido = ?, paqueteria = ?, numero_guia = ?, fecha_envio = NOW()
+                                WHERE id = ? AND estado_pedido = ?");
+        $stmt->bind_param("sssis", $siguiente, $paqueteria, $guia, $id, $actual);
+    } else {
+        $stmt = $conn->prepare("UPDATE pedidos SET estado_pedido = ? WHERE id = ? AND estado_pedido = ?");
+        $stmt->bind_param("sis", $siguiente, $id, $actual);
+    }
     $stmt->execute();
     if ($stmt->affected_rows === 0) {
         responder(false, 'El pedido cambió mientras lo veías (otra persona lo actualizó o el cliente lo canceló). Vuelve a abrirlo.');
     }
 
     registrar_movimiento($conn, 'Pedidos', 'Cambiar estado',
-        "Pedido #$id: " . ETIQUETAS_ESTADO[$actual] . " → " . ETIQUETAS_ESTADO[$siguiente]);
+        "Pedido #$id: " . ETIQUETAS_ESTADO[$actual] . " → " . ETIQUETAS_ESTADO[$siguiente]
+        . ($siguiente === 'enviado' ? " ($paqueteria, guía $guia)" : ''));
 
     // Aviso al cliente cuando su pedido va en camino o ya se entregó. Si el correo falla, el estado ya cambió igual.
     // El correo tarda varios segundos, así que primero se contesta y luego se envía.

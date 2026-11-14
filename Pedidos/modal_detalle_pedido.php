@@ -39,6 +39,10 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
 .paso-pedido.hecho::before, .paso-pedido.actual::before { background:var(--dorado-oscuro); }
 .paso-pedido.actual .paso-punto { background:var(--negro); border-color:var(--negro); color:var(--dorado); }
 .paso-pedido.actual { color:var(--texto); font-weight:600; }
+.envio-datos { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px;
+               background:var(--dorado-claro); border:1px solid var(--borde); }
+.envio-datos > i { color:var(--dorado-oscuro); font-size:1.1rem; }
+.envio-form { padding:12px 14px; border-radius:10px; border:1px dashed var(--dorado-oscuro); background:#fff; }
 </style>
 <div class="modal-header">
     <h5 class="modal-title">Pedido #<?= $pedido['id'] ?></h5>
@@ -109,6 +113,36 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
         </div>
         <?php endforeach; ?>
     </div>
+    <?php if (!empty($pedido['numero_guia'])): ?>
+    <div class="envio-datos mt-3">
+        <i class="fa-solid fa-truck-fast"></i>
+        <div class="flex-grow-1">
+            <div class="small text-muted">Enviado por <strong><?= htmlspecialchars($pedido['paqueteria']) ?></strong>
+                <?= $pedido['fecha_envio'] ? 'el ' . date('d/m/Y H:i', strtotime($pedido['fecha_envio'])) : '' ?></div>
+            <div class="fw-semibold">Guía: <?= htmlspecialchars($pedido['numero_guia']) ?></div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($estado === 'en_preparacion'): ?>
+    <div class="envio-form mt-3">
+        <div class="fw-semibold mb-1"><i class="fa-solid fa-box me-1"></i> Datos del envío</div>
+        <div class="small text-muted mb-2">Al entregar el paquete a la paquetería, captura la guía que te dieron. Se le enviará al cliente por correo.</div>
+        <div class="row g-2">
+            <div class="col-md-5">
+                <label>Paquetería</label>
+                <input type="text" id="envio_paqueteria" class="form-control" maxlength="60" placeholder="Ej. Estafeta">
+
+            </div>
+            <div class="col-md-7">
+                <label>Número de guía</label>
+                <input type="text" id="envio_guia" class="form-control" maxlength="40" placeholder="Ej. 8055241528464720099314"
+                       oninput="this.value = this.value.toUpperCase().replace(/\s+/g, '')">
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php if ($pedido['estado_pago'] !== 'pagado' && $estado === 'nuevo'): ?>
     <div class="small mt-2" style="color:#9b3d1e">
         <i class="fa-solid fa-triangle-exclamation me-1"></i> El pago de este pedido está <strong><?= $pedido['estado_pago'] ?></strong>. Revisa que esté pagado antes de confirmarlo.
@@ -131,9 +165,22 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function aviso_envio(texto, campo){
+    Swal.fire({title:"Faltan datos del envío",text:texto,icon:"warning",confirmButtonColor:"#c69a4c",confirmButtonText:"Aceptar",returnFocus:false})
+        .then(function(){ $(campo).focus(); });
+}
 function avanzar_estado_pedido(id, estado_actual, etiqueta_siguiente){
+    var datos = { accion:"avanzar_estado", id:id, estado_actual:estado_actual };
+    if(estado_actual === 'en_preparacion'){
+        var paq = $.trim($('#envio_paqueteria').val());
+        var guia = $('#envio_guia').val();
+        if(!paq){ return aviso_envio("Escribe la paquetería con la que se envió.", '#envio_paqueteria'); }
+        if(!/^[A-Z0-9\-]{6,40}$/.test(guia)){ return aviso_envio("Escribe el número de guía (de 6 a 40 letras o números, sin espacios).", '#envio_guia'); }
+        datos.paqueteria = paq;
+        datos.numero_guia = guia;
+    }
     var btn = $('#btn_avanzar_pedido').prop('disabled', true);
-    $.post("Pedidos/back_pedidos.php", { accion:"avanzar_estado", id:id, estado_actual:estado_actual }, function(resp){
+    $.post("Pedidos/back_pedidos.php", datos, function(resp){
         var r = JSON.parse(resp);
         if(r.ok){
             $("#modal_general").modal('hide');
