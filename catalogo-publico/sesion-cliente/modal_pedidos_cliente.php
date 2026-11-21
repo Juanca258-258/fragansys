@@ -60,6 +60,9 @@ if (!isset($pedidosCliente)) {
                     <?= htmlSeguimientoPedido($pedido) ?>
                 </div>
 
+                <!-- Datos del envío: los dibuja JavaScript (indexP.php) cuando el pedido ya tiene guía -->
+                <div class="envio-pedido" id="envio-<?= (int)$pedido['id'] ?>"></div>
+
                 <div class="mt-3 pt-3 border-top">
                     <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-4 text-uppercase font-serif" style="font-size: 0.75rem; letter-spacing: 1px;" onclick="verDetallePedido(<?= (int)$pedido['id'] ?>)">
                         <i class="bi bi-eye me-1"></i> Ver detalles

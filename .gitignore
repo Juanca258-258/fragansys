@@ -9,3 +9,6 @@ paypal_config.php
 
 # Datos del correo (PHPMailer): cada PC tiene su archivo
 mail_config.php
+
+# Clave de la API de la app Android: cada PC tiene su archivo
+api/api_config.php

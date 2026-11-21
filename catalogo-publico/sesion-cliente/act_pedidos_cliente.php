@@ -18,10 +18,11 @@ if ($accion === 'estados') {
     $lista = array();
     foreach (obtenerPedidosCliente($conn, $clienteId) as $pedido) {
         $lista[] = array(
-            'id'    => (int)$pedido['id'],
-            'firma' => firmaPedido($pedido),
-            'html'  => htmlSeguimientoPedido($pedido)
-        );
+            'id'            => (int)$pedido['id'],
+            'estado_pedido' => $pedido['estado_pedido'],
+            'firma'         => firmaPedido($pedido),
+            'html'          => htmlSeguimientoPedido($pedido)
+        ) + datosEnvioPedido($pedido);
     }
     $respuesta = array('status' => 'success', 'pedidos' => $lista);
 } elseif ($accion === 'detalle') {
@@ -47,6 +48,7 @@ if ($accion === 'estados') {
             'status' => 'success',
             'pedido' => array(
                 'id'                => (int)$pedido['id'],
+                'estado_pedido'     => $pedido['estado_pedido'],
                 'fecha_pedido'      => formatoFecha($pedido['fecha_pedido']),
                 'direccion_entrega' => $pedido['direccion_entrega'],
                 'telefono_contacto' => $pedido['telefono_contacto'],
@@ -56,7 +58,7 @@ if ($accion === 'estados') {
                 'costo_envio'       => (float)$pedido['costo_envio'],
                 'total'             => (float)$pedido['total'],
                 'seguimiento_html'  => htmlSeguimientoPedido($pedido)
-            ),
+            ) + datosEnvioPedido($pedido),
             'items' => $items
         );
     }

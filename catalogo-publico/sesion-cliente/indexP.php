@@ -57,6 +57,30 @@ if (!clienteSesionActiva()) {
             .seguimiento-pasos .paso-texto { font-size: 0.6rem; }
         }
 
+        /* Bloque con los datos del envío */
+        .envio-bloque {
+            background-color: #fbf7f2; border: 1px solid #eadfce; border-left: 4px solid #b58c5a;
+            border-radius: 1rem; padding: 1rem 1.25rem;
+        }
+        .envio-bloque .envio-icono {
+            width: 42px; height: 42px; border-radius: 50%; background-color: #4a3320; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;
+        }
+        .envio-bloque .envio-etiqueta { font-size: 0.7rem; color: #9a8f84; text-transform: uppercase; letter-spacing: 1px; }
+        .envio-bloque .envio-guia {
+            font-family: SFMono-Regular, Consolas, 'Liberation Mono', monospace; font-size: 1.5rem; font-weight: 700;
+            color: #4a3320; letter-spacing: 1px; word-break: break-all; line-height: 1.2;
+        }
+        .btn-copiar-guia { border: 1px solid #b58c5a; color: #4a3320; background-color: #fff; white-space: nowrap; }
+        .btn-copiar-guia:hover, .btn-copiar-guia:focus { background-color: #b58c5a; border-color: #b58c5a; color: #fff; }
+        .btn-copiar-guia.copiado { background-color: #4a3320; border-color: #4a3320; color: #fff; }
+
+        @media (max-width: 576px) {
+            .envio-bloque { padding: 0.9rem 1rem; }
+            .envio-bloque .envio-guia { font-size: 1.25rem; }
+            .btn-copiar-guia { width: 100%; }
+        }
+
         /* Resalta el pedido cuyo seguimiento acaba de cambiar */
         .tarjeta-pedido.actualizado { animation: resaltar 2.5s ease-out; }
         @keyframes resaltar { 0% { box-shadow: 0 0 0 4px rgba(181, 140, 90, 0.6); } 100% { box-shadow: 0 0 0 0 rgba(181, 140, 90, 0); } }
@@ -109,6 +133,81 @@ if (!clienteSesionActiva()) {
             return '$' + Number(valor).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        // Bloque "Enviado por ..." con la guía y el botón para copiarla (sin enlace de rastreo)
+        function htmlEnvio(p) {
+            const guia = p.numero_guia ? String(p.numero_guia).trim() : '';
+            if (!guia || !['enviado', 'entregado'].includes(p.estado_pedido)) return '';
+
+            let leyenda = 'Enviado';
+            if (p.paqueteria) leyenda += ' por <strong>' + escaparHTML(p.paqueteria) + '</strong>';
+            if (p.fecha_envio) leyenda += ' el ' + escaparHTML(p.fecha_envio);
+
+            return `
+                <div class="envio-bloque">
+                    <div class="d-flex flex-wrap flex-sm-nowrap align-items-center gap-3">
+                        <div class="envio-icono"><i class="bi bi-truck"></i></div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <div class="small text-brown mb-1">${leyenda}</div>
+                            <div class="envio-etiqueta">Número de guía</div>
+                            <div class="envio-guia">${escaparHTML(guia)}</div>
+                        </div>
+                        <button type="button" class="btn btn-sm rounded-pill px-3 btn-copiar-guia" data-guia="${escaparHTML(guia)}">
+                            <i class="bi bi-clipboard me-1"></i> Copiar guía
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        // Dibuja (o quita) el bloque de envío de una tarjeta; solo se redibuja si cambió
+        function pintarEnvio(p) {
+            const contenedor = document.getElementById('envio-' + p.id);
+            if (!contenedor) return;
+            const html = htmlEnvio(p);
+            const clave = html ? [p.estado_pedido, p.paqueteria, p.numero_guia, p.fecha_envio].join('|') : '';
+            if (contenedor.dataset.clave === clave) return;
+            contenedor.dataset.clave = clave;
+            contenedor.innerHTML = html;
+            contenedor.classList.toggle('mt-3', html !== '');
+        }
+
+        function copiarTexto(texto) {
+            // navigator.clipboard solo existe en HTTPS o localhost; si no, se usa el método clásico
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(texto);
+            }
+            return new Promise((resolve, reject) => {
+                const area = document.createElement('textarea');
+                area.value = texto;
+                area.setAttribute('readonly', '');
+                area.style.position = 'fixed';
+                area.style.opacity = '0';
+                document.body.appendChild(area);
+                area.select();
+                area.setSelectionRange(0, texto.length); // iOS
+                const ok = document.execCommand('copy');
+                document.body.removeChild(area);
+                ok ? resolve() : reject(new Error('No se pudo copiar'));
+            });
+        }
+
+        // Un solo listener atiende los botones de las tarjetas y los del modal de detalle
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.btn-copiar-guia');
+            if (!btn) return;
+            copiarTexto(btn.dataset.guia)
+                .then(() => {
+                    btn.classList.add('copiado');
+                    btn.innerHTML = '<i class="bi bi-check2 me-1"></i> ¡Copiada!';
+                    mostrarAviso('Número de guía copiado al portapapeles.');
+                    clearTimeout(btn._timer);
+                    btn._timer = setTimeout(() => {
+                        btn.classList.remove('copiado');
+                        btn.innerHTML = '<i class="bi bi-clipboard me-1"></i> Copiar guía';
+                    }, 2000);
+                })
+                .catch(() => mostrarAviso('No se pudo copiar. Mantén presionado el número para copiarlo.'));
+        });
+
         function enviarAccion(datos) {
             const formData = new FormData();
             Object.keys(datos).forEach(k => formData.append(k, datos[k]));
@@ -136,6 +235,7 @@ if (!clienteSesionActiva()) {
 
                     let cambios = 0;
                     data.pedidos.forEach(p => {
+                        pintarEnvio(p);
                         const contenedor = document.getElementById('seguimiento-' + p.id);
                         if (!contenedor) {
                             cambios++; // Pedido nuevo que no estaba en pantalla
@@ -197,6 +297,8 @@ if (!clienteSesionActiva()) {
                         <div class="small text-muted mb-3"><i class="bi bi-calendar3 me-1"></i>Realizado el ${escaparHTML(p.fecha_pedido)}</div>
 
                         <div class="p-3 rounded-3 bg-light mb-4">${p.seguimiento_html}</div>
+
+                        ${htmlEnvio(p) ? `<div class="mb-4">${htmlEnvio(p)}</div>` : ''}
 
                         <h6 class="font-serif text-brown fw-bold mb-2">Productos</h6>
                         <div class="mb-3">${filas}</div>
@@ -284,6 +386,8 @@ if (!clienteSesionActiva()) {
                 .catch(err => console.error('Error al cerrar sesión:', err));
         }
 
+        // Al cargar se piden los pedidos una vez para dibujar los datos de envío en las tarjetas
+        revisarSeguimiento();
         setInterval(revisarSeguimiento, INTERVALO_SEGUIMIENTO);
         // Al volver a la pestaña se revisa de inmediato
         document.addEventListener('visibilitychange', () => {

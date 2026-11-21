@@ -166,6 +166,39 @@ function correo_pedido_pagado($conn, $pedido_id) {
     }
 }
 
+// Paquetería y número de guía del envío; cadena vacía si el pedido no tiene guía (pedidos viejos).
+// Se arma con una tabla y estilos en línea para que Outlook la respete. Sin enlace de rastreo.
+function correo_bloque_guia($pedido) {
+    $guia = isset($pedido['numero_guia']) ? trim((string)$pedido['numero_guia']) : '';
+    if ($guia === '') {
+        return '';
+    }
+    $paqueteria = isset($pedido['paqueteria']) ? trim((string)$pedido['paqueteria']) : '';
+
+    $fila_paqueteria = $paqueteria !== ''
+        ? '<tr><td style="padding:0 0 12px;">'
+          . '<div style="font-size:11px;color:#9a8f84;text-transform:uppercase;letter-spacing:1px;">Paquetería</div>'
+          . '<div style="font-size:16px;font-weight:bold;color:#4a3320;">' . correo_e($paqueteria) . '</div>'
+          . '</td></tr>'
+        : '';
+    $donde = $paqueteria !== '' ? correo_e($paqueteria) : 'la paquetería';
+
+    return '<table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;background:#fbf8f4;border:1px solid #eee5da;border-left:3px solid #b58c5a;border-radius:8px;">'
+        . '<tr><td style="padding:16px 18px;">'
+        . '<table width="100%" cellpadding="0" cellspacing="0">'
+        . $fila_paqueteria
+        . '<tr><td style="padding:0;">'
+        . '<div style="font-size:11px;color:#9a8f84;text-transform:uppercase;letter-spacing:1px;">Número de guía</div>'
+        . '<div style="font-family:Consolas,\'Courier New\',monospace;font-size:24px;font-weight:bold;color:#4a3320;letter-spacing:2px;word-break:break-all;-webkit-user-select:all;user-select:all;padding:4px 0;">'
+        . correo_e($guia) . '</div>'
+        . '</td></tr>'
+        . '<tr><td style="padding:10px 0 0;font-size:13px;color:#555;line-height:1.4;">'
+        . 'Con este número de guía puedes rastrear tu paquete en la página de ' . $donde . '.'
+        . '</td></tr>'
+        . '</table>'
+        . '</td></tr></table>';
+}
+
 // Al cliente: su pedido ya salió.
 function correo_pedido_enviado($conn, $pedido_id) {
     try {
@@ -179,6 +212,7 @@ function correo_pedido_enviado($conn, $pedido_id) {
         $contenido = '<p>Hola ' . correo_e($pedido['cliente_nombre']) . ',</p>'
             . '<p>¡Buenas noticias! Tu <strong>pedido #' . (int)$pedido['id'] . '</strong> ya fue enviado y va en camino a:</p>'
             . '<p style="background:#fbf8f4;border-left:3px solid #b58c5a;padding:10px 14px;font-size:14px;">' . correo_e($pedido['direccion_entrega']) . '</p>'
+            . correo_bloque_guia($pedido)
             . correo_tabla_productos($pedido)
             . '<p style="font-size:14px;color:#555;">Puedes seguir el estado de tu pedido desde tu cuenta.</p>';
 

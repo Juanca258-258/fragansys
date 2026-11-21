@@ -28,7 +28,7 @@ $ESTADOS_CANCELABLES = array('nuevo', 'confirmado', 'en_preparacion');
 function obtenerPedidosCliente($db, $clienteId) {
     $stmt = $db->prepare(
         "SELECT p.id, p.subtotal, p.costo_envio, p.total, p.estado_pago, p.estado_pedido,
-                p.fecha_pedido, p.fecha_actualizacion,
+                p.fecha_pedido, p.fecha_actualizacion, p.paqueteria, p.numero_guia, p.fecha_envio,
                 (SELECT COALESCE(SUM(pd.cantidad), 0) FROM pedido_detalle pd WHERE pd.pedido_id = p.id) AS total_items
          FROM pedidos p
          WHERE p.cliente_id = ?
@@ -44,7 +44,7 @@ function obtenerPedidoCliente($db, $clienteId, $pedidoId) {
     $stmt = $db->prepare(
         "SELECT id, cliente_nombre, cliente_correo, subtotal, costo_envio, total, metodo_pago,
                 estado_pago, estado_pedido, direccion_entrega, telefono_contacto, notas,
-                fecha_pedido, fecha_actualizacion
+                fecha_pedido, fecha_actualizacion, paqueteria, numero_guia, fecha_envio
          FROM pedidos
          WHERE id = ? AND cliente_id = ?"
     );
@@ -126,7 +126,17 @@ function cancelarPedidoCliente($db, $clienteId, $pedidoId) {
 
 // Identifica la versión actual de un pedido; si cambia, el seguimiento del cliente se refresca
 function firmaPedido($pedido) {
-    return $pedido['estado_pedido'] . '|' . $pedido['estado_pago'] . '|' . $pedido['fecha_actualizacion'];
+    return $pedido['estado_pedido'] . '|' . $pedido['estado_pago'] . '|' . $pedido['fecha_actualizacion']
+         . '|' . $pedido['paqueteria'] . '|' . $pedido['numero_guia'];
+}
+
+// Datos del envío para el JSON; en pedidos viejos o sin enviar vienen en NULL y se entregan vacíos
+function datosEnvioPedido($pedido) {
+    return array(
+        'paqueteria'  => (string)$pedido['paqueteria'],
+        'numero_guia' => (string)$pedido['numero_guia'],
+        'fecha_envio' => $pedido['fecha_envio'] ? date('d/m/Y', strtotime($pedido['fecha_envio'])) : ''
+    );
 }
 
 function formatoFecha($fecha) {
