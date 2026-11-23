@@ -12,3 +12,6 @@ mail_config.php
 
 # Clave de la API de la app Android: cada PC tiene su archivo
 api/api_config.php
+
+# SDK de Flutter: cada PC tiene su propia instalacion (no se sube)
+flutter/
