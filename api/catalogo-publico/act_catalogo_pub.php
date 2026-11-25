@@ -13,7 +13,9 @@ require_once __DIR__ . '/../conexion_api.php';
 $accion = api_param('accion', 'catalogo');
 
 if ($accion === 'catalogo') {
-    // back_catalogo_pub.php lee $_GET['seccion'] y deja listos $seccionActual, $datosSeccion, $listaPerfumes y $listaCombos
+    // back_catalogo_pub.php lee $_GET['seccion'] y deja listos $seccionActual, $datosSeccion, $listaPerfumes y $listaCombos.
+    // La app manda la sección por POST, así que se pasa a $_GET para que back_catalogo_pub.php la vea.
+    $_GET['seccion'] = api_param('seccion', 'inicio');
     require_once __DIR__ . '/../../catalogo-publico/back_catalogo_pub.php';
 
     $secciones = array();

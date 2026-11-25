@@ -75,7 +75,7 @@ $estilo_pago = [
     [$pago_clase, $pago_ico, $pago_txt] = $estilo_pago[$fila['estado_pago']] ?? ['neutro', 'fa-circle', ucfirst($fila['estado_pago'])];
 ?>
 <tr>
-    <td class="fw-semibold">#<?= $fila['pedido_id'] ?></td>
+    <td class="fw-semibold" data-order="<?= (int)$fila['pedido_id'] ?>">#<?= $fila['pedido_id'] ?></td>
     <td>
         <?= htmlspecialchars($fila['cliente_nombre']) ?>
         <div class="small text-muted"><?= htmlspecialchars($fila['cliente_correo']) ?></div>
