@@ -149,3 +149,46 @@ function paypal_capturar_orden($orden_id) {
     }
     return ['error', $datos];
 }
+
+// Devuelve completo el cobro de una orden. Devuelve [estado, datos]:
+//   'reembolsado' -> PayPal ya regresó el dinero; datos = ['reembolso_id', 'monto', 'moneda']
+//   'pendiente'   -> PayPal aceptó el reembolso pero lo está procesando (datos igual que arriba)
+//   'error'       -> no se reembolsó; datos = ['mensaje' => motivo para mostrar al administrador]
+// Es seguro repetirlo: si el cobro ya estaba reembolsado se devuelve ese reembolso en vez de hacer otro.
+function paypal_reembolsar_orden($orden_id, $monto_esperado) {
+    [$codigo, $orden] = paypal_api('GET', '/v2/checkout/orders/' . rawurlencode($orden_id));
+    if ($codigo === 404) {
+        return ['error', ['mensaje' => 'PayPal no encontró la orden de este pedido (' . $orden_id . ').']];
+    }
+    $pagos   = $orden['purchase_units'][0]['payments'] ?? [];
+    $captura = $pagos['captures'][0] ?? null;
+    if ($codigo !== 200 || !$captura) {
+        error_log('PayPal: no se pudo consultar la orden ' . $orden_id . ' para reembolsar (HTTP ' . $codigo . '): ' . json_encode($orden));
+        return ['error', ['mensaje' => $codigo === 0 ? 'No hay conexión con PayPal. Intenta de nuevo en un momento.'
+                                                      : 'Esta orden de PayPal no tiene un cobro que se pueda reembolsar.']];
+    }
+
+    // Ya reembolsado (p. ej. se cortó la conexión en el primer intento, o se hizo desde la cuenta de PayPal).
+    foreach ($pagos['refunds'] ?? [] as $r) {
+        if (in_array($r['status'], ['COMPLETED', 'PENDING'], true)) {
+            return [$r['status'] === 'COMPLETED' ? 'reembolsado' : 'pendiente',
+                    ['reembolso_id' => $r['id'], 'monto' => $r['amount']['value'] ?? '', 'moneda' => $r['amount']['currency_code'] ?? '']];
+        }
+    }
+    if ($captura['status'] !== 'COMPLETED') {
+        return ['error', ['mensaje' => 'El cobro en PayPal está en estado ' . $captura['status'] . ' y no se puede reembolsar.']];
+    }
+    if (($captura['amount']['value'] ?? '') !== paypal_monto($monto_esperado)) {
+        return ['error', ['mensaje' => 'El cobro en PayPal ($' . ($captura['amount']['value'] ?? '?') . ') no coincide con el total del pedido.']];
+    }
+
+    // Sin monto en el cuerpo = reembolso completo. El Request-Id evita que un doble clic reembolse dos veces.
+    [$codigo, $r] = paypal_api('POST', '/v2/payments/captures/' . rawurlencode($captura['id']) . '/refund', null, 'reembolso-' . $captura['id']);
+    if (($codigo === 200 || $codigo === 201) && in_array($r['status'] ?? '', ['COMPLETED', 'PENDING'], true)) {
+        return [$r['status'] === 'COMPLETED' ? 'reembolsado' : 'pendiente',
+                ['reembolso_id' => $r['id'], 'monto' => $r['amount']['value'] ?? '', 'moneda' => $r['amount']['currency_code'] ?? '']];
+    }
+    error_log('PayPal no reembolsó la captura ' . $captura['id'] . ' (HTTP ' . $codigo . '): ' . json_encode($r));
+    $motivo = $r['details'][0]['description'] ?? ($r['message'] ?? '');
+    return ['error', ['mensaje' => 'PayPal no hizo el reembolso' . ($motivo ? ': ' . $motivo : '. Intenta de nuevo en un momento.')]];
+}

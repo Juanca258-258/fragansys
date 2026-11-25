@@ -62,4 +62,61 @@ if ($accion == "avanzar_estado") {
     responder(true);
 }
 
+// Devuelve en PayPal el dinero de un pedido que el cliente canceló después de pagarlo.
+// El stock ya se regresó al cancelar; aquí solo se mueve el dinero y se marca el pago como reembolsado.
+if ($accion == "reembolsar") {
+    if (($_SESSION['rol'] ?? '') !== 'admin') {
+        responder(false, 'Solo un administrador puede hacer reembolsos.');
+    }
+    $id = (int)($_POST['id'] ?? 0);
+    require_once __DIR__ . '/../pagos/paypal.php';
+
+    // Se bloquea el pedido mientras PayPal contesta: si dos personas dan clic a la vez, la segunda espera
+    // y luego ve que ya está reembolsado (y PayPal tampoco lo duplicaría, por el Request-Id).
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare("SELECT id, total, estado_pedido, estado_pago, paypal_order_id FROM pedidos WHERE id = ? FOR UPDATE");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $pedido = $stmt->get_result()->fetch_assoc();
+
+        $problema = null;
+        if (!$pedido)                                     $problema = 'Pedido no encontrado.';
+        elseif ($pedido['estado_pago'] === 'reembolsado') $problema = 'Este pedido ya estaba reembolsado.';
+        elseif ($pedido['estado_pedido'] !== 'cancelado') $problema = 'Solo se reembolsan pedidos cancelados.';
+        elseif ($pedido['estado_pago'] !== 'pagado')      $problema = 'Este pedido no se pagó, no hay nada que reembolsar.';
+        elseif (empty($pedido['paypal_order_id']))        $problema = 'Este pedido no tiene una orden de PayPal registrada.';
+        if ($problema) {
+            $conn->rollback();
+            responder(false, $problema);
+        }
+
+        [$resultado, $datos] = paypal_reembolsar_orden($pedido['paypal_order_id'], $pedido['total']);
+        if ($resultado === 'error') {
+            $conn->rollback();
+            responder(false, $datos['mensaje']);
+        }
+
+        $stmt = $conn->prepare("UPDATE pedidos SET estado_pago = 'reembolsado', paypal_reembolso_id = ?, fecha_reembolso = NOW() WHERE id = ?");
+        $stmt->bind_param("si", $datos['reembolso_id'], $id);
+        $stmt->execute();
+        $conn->commit();
+    } catch (mysqli_sql_exception $e) {
+        $conn->rollback();
+        error_log("Reembolso del pedido $id: " . $e->getMessage());
+        // Si PayPal ya había devuelto el dinero, al reintentar se detecta y se registra sin reembolsar otra vez.
+        responder(false, 'Ocurrió un error al registrar el reembolso. Vuelve a intentarlo: no se devolverá el dinero dos veces.');
+    }
+    mysqli_report(MYSQLI_REPORT_OFF);
+
+    registrar_movimiento($conn, 'Pedidos', 'Reembolso',
+        "Pedido #$id reembolsado en PayPal por $" . number_format($pedido['total'], 2) . " (reembolso {$datos['reembolso_id']})");
+
+    echo json_encode(['ok' => true, 'mensaje' => $resultado === 'pendiente'
+        ? 'PayPal aceptó el reembolso y lo está procesando; el cliente lo recibirá en unos minutos.'
+        : 'Se devolvieron $' . number_format($pedido['total'], 2) . ' al cliente en PayPal.']);
+    exit;
+}
+
 responder(false, 'Acción no válida.');

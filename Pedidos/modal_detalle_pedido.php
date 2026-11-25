@@ -42,6 +42,9 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
 .envio-datos { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px;
                background:var(--dorado-claro); border:1px solid var(--borde); }
 .envio-datos > i { color:var(--dorado-oscuro); font-size:1.1rem; }
+.reembolso-aviso { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px;
+                   background:#fbe7e0; border:1px solid #f0c9bb; color:#7a2f16; }
+.reembolso-aviso > i { font-size:1.3rem; }
 .envio-form { padding:12px 14px; border-radius:10px; border:1px dashed var(--dorado-oscuro); background:#fff; }
 </style>
 <div class="modal-header">
@@ -103,6 +106,34 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
     <div class="p-3 rounded text-center" style="background:#fbe7e0; color:#9b3d1e">
         <i class="fa-solid fa-ban me-1"></i> <strong>Pedido cancelado por el cliente.</strong> Ya no se puede avanzar.
     </div>
+    <?php if ($pedido['estado_pago'] === 'pagado'): ?>
+    <div class="reembolso-aviso mt-3">
+        <i class="fa-solid fa-hand-holding-dollar"></i>
+        <div class="flex-grow-1">
+            <div class="fw-semibold">Falta devolver $<?= number_format($pedido['total'], 2) ?> al cliente</div>
+            <div class="small">Lo pagó con PayPal y después canceló. El inventario ya se regresó; solo falta el dinero.</div>
+        </div>
+        <?php if ($_SESSION['rol'] === 'admin'): ?>
+        <button class="btn-dorado" id="btn_reembolsar"
+                onclick="reembolsar_pedido(<?= (int)$pedido['id'] ?>, '<?= number_format($pedido['total'], 2) ?>')">
+            <i class="fa-solid fa-rotate-left me-1"></i> Reembolsar en PayPal
+        </button>
+        <?php else: ?>
+        <span class="small text-muted">Pídele a un administrador que haga el reembolso.</span>
+        <?php endif; ?>
+    </div>
+    <?php elseif ($pedido['estado_pago'] === 'reembolsado'): ?>
+    <div class="envio-datos mt-3">
+        <i class="fa-solid fa-circle-check" style="color:#2f6b3b"></i>
+        <div class="flex-grow-1">
+            <div class="fw-semibold">Reembolsado: $<?= number_format($pedido['total'], 2) ?></div>
+            <div class="small text-muted">
+                <?= $pedido['fecha_reembolso'] ? 'El ' . date('d/m/Y H:i', strtotime($pedido['fecha_reembolso'])) : '' ?>
+                <?= $pedido['paypal_reembolso_id'] ? ' · Reembolso de PayPal ' . htmlspecialchars($pedido['paypal_reembolso_id']) : '' ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
     <?php else: ?>
     <div class="pasos-pedido">
         <?php foreach (FLUJO_PEDIDO as $i => $paso):
@@ -165,6 +196,32 @@ $paso_actual = array_search($estado, FLUJO_PEDIDO, true);
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+function reembolsar_pedido(id, total){
+    Swal.fire({
+        title: "¿Reembolsar $" + total + "?",
+        text: "Se le devolverá el dinero completo al cliente en PayPal. Esto no se puede deshacer.",
+        icon: "question", showCancelButton: true,
+        confirmButtonColor: "#c69a4c", cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, reembolsar", cancelButtonText: "Cancelar"
+    }).then(function(r){
+        if(!r.isConfirmed) return;
+        var btn = $('#btn_reembolsar').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Reembolsando…');
+        $.post("Pedidos/back_pedidos.php", { accion:"reembolsar", id:id }, function(resp){
+            var j = JSON.parse(resp);
+            if(j.ok){
+                Swal.fire({title:"Reembolso hecho", text:j.mensaje, icon:"success", confirmButtonColor:"#c69a4c"});
+                modal_detalle_pedido(id);   // vuelve a cargar el detalle ya reembolsado
+                cargar_pedidos();
+            } else {
+                btn.prop('disabled', false).html('<i class="fa-solid fa-rotate-left me-1"></i> Reembolsar en PayPal');
+                Swal.fire({title:"No se pudo reembolsar", text:j.error, icon:"warning", confirmButtonColor:"#d33", confirmButtonText:"Aceptar"});
+            }
+        }).fail(function(){
+            btn.prop('disabled', false).html('<i class="fa-solid fa-rotate-left me-1"></i> Reembolsar en PayPal');
+            Swal.fire({title:"Sin conexión", text:"No se pudo comunicar con el servidor. Vuelve a intentarlo: no se devolverá el dinero dos veces.", icon:"warning", confirmButtonColor:"#d33"});
+        });
+    });
+}
 function aviso_envio(texto, campo){
     Swal.fire({title:"Faltan datos del envío",text:texto,icon:"warning",confirmButtonColor:"#c69a4c",confirmButtonText:"Aceptar",returnFocus:false})
         .then(function(){ $(campo).focus(); });
