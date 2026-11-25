@@ -306,6 +306,8 @@ function agregar_a_venta(tipo, id){
 
 function cambiar_cantidad(i, delta){
     if(delta > 0 && !cabe_uno_mas(items_venta[i].tipo, items_venta[i].id)) return;
+    // Bajar de 1 a 0 quita el producto de la venta: se pide confirmación
+    if(items_venta[i].cantidad + delta <= 0 && !confirm('Este producto se eliminará del carrito. ¿Está seguro?')) return;
     items_venta[i].cantidad += delta;
     if(items_venta[i].cantidad <= 0) items_venta.splice(i, 1);
     pintar_items();

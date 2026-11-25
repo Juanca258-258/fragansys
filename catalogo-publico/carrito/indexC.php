@@ -68,7 +68,16 @@ require_once __DIR__ . '/back_carrito_pub.php';
 
     <!-- Funciones AJAX para interactuar con act_carrito_pub.php -->
     <script>
+        const MENSAJE_ELIMINAR = 'Este producto se eliminará del carrito. ¿Está seguro?';
+
         function actualizarCantidad(productoId, cantidad) {
+            // Escribir 0 (o menos) en la cantidad también elimina el producto: se pide confirmación
+            if ((parseInt(cantidad) || 0) <= 0 && !confirm(MENSAJE_ELIMINAR)) {
+                const input = document.getElementById('input-cant-' + productoId);
+                if (input) input.value = input.defaultValue; // regresa a la cantidad anterior
+                return;
+            }
+
             const formData = new FormData();
             formData.append('accion', 'actualizar');
             formData.append('producto_id', productoId);
@@ -90,7 +99,7 @@ require_once __DIR__ . '/back_carrito_pub.php';
         }
 
         function eliminarItem(productoId) {
-            if (!confirm('¿Deseas eliminar esta fragancia de tu carrito?')) return;
+            if (!confirm(MENSAJE_ELIMINAR)) return;
 
             const formData = new FormData();
             formData.append('accion', 'eliminar');

@@ -76,7 +76,25 @@ class FilaCarrito extends StatelessWidget {
           IconButton(
             tooltip: 'Eliminar producto',
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () => context.read<CarritoCompras>().eliminar(item.clave),
+            onPressed: () async {
+              final carrito = context.read<CarritoCompras>();
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('Eliminar producto'),
+                  content: const Text('Este producto se eliminará del carrito. ¿Está seguro?'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => Navigator.pop(c, true),
+                      child: const Text('Eliminar'),
+                    ),
+                  ],
+                ),
+              );
+              if (ok == true) carrito.eliminar(item.clave);
+            },
           ),
         ],
       ),

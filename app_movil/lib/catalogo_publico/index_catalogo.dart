@@ -1,5 +1,5 @@
 // Equivalente a catalogo-publico/index.php: barra superior con sesión y carrito, menú de secciones
-// (Destacados, Catálogo completo, Decants, Perfumes, Combos, Mujer, Hombre), búsqueda y filtro de género.
+// (Destacados, Catálogo completo, Decants, Perfumes, Combos, Mujer, Hombre) y búsqueda.
 
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -249,7 +249,6 @@ class _VistaSeccionState extends State<VistaSeccion> with AutomaticKeepAliveClie
   DatosSeccion? _datos;
   String? _error;
   String _busqueda = '';
-  String _genero = '';
 
   @override
   bool get wantKeepAlive => true;
@@ -285,7 +284,7 @@ class _VistaSeccionState extends State<VistaSeccion> with AutomaticKeepAliveClie
     }
 
     final perfumes = datos.perfumes
-        .where((p) => p.coincide(_busqueda) && (_genero.isEmpty || p.genero == _genero))
+        .where((p) => p.coincide(_busqueda))
         .toList();
 
     return RefreshIndicator(
@@ -385,7 +384,7 @@ class _VistaSeccionState extends State<VistaSeccion> with AutomaticKeepAliveClie
     ];
   }
 
-  // Búsqueda y filtro de género
+  // Búsqueda (el género se elige con las pestañas Mujer / Hombre del menú superior)
   Widget _filtros() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -401,23 +400,6 @@ class _VistaSeccionState extends State<VistaSeccion> with AutomaticKeepAliveClie
               onChanged: (t) => setState(() => _busqueda = t),
             ),
           ),
-          if (widget.seccion.filtraGenero) ...[
-            const SizedBox(width: 8),
-            Expanded(
-              flex: 2,
-              child: DropdownButtonFormField<String>(
-                initialValue: _genero,
-                isExpanded: true,
-                items: const [
-                  DropdownMenuItem(value: '', child: Text('Todos')),
-                  DropdownMenuItem(value: 'mujer', child: Text('Mujer')),
-                  DropdownMenuItem(value: 'hombre', child: Text('Hombre')),
-                  DropdownMenuItem(value: 'unisex', child: Text('Unisex')),
-                ],
-                onChanged: (g) => setState(() => _genero = g ?? ''),
-              ),
-            ),
-          ],
         ],
       ),
     );

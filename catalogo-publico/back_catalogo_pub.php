@@ -55,7 +55,7 @@ function obtenerCatalogoPublico($db, $generos = null, $tipoPresentacion = null, 
                              WHERE p2.perfume_id = pf.id) AS vendidos
                     FROM perfumes pf
                     WHERE pf.activo = 1
-                    ORDER BY " . ($soloDestacados ? "vendidos DESC, " : "") . "pf.nombre ASC";
+                    ORDER BY " . ($soloDestacados ? "vendidos DESC, " : "") . "pf.nombre ASC, pf.id ASC";
 
     $resultadoCatalogo = $db->query($sqlCatalogo);
 
