@@ -19,6 +19,16 @@ $ventas_sql = "
 $ventas_registradas = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COUNT(*) AS total, COALESCE(SUM(total), 0) AS ingresos FROM ($ventas_sql) t"));
 
+// El vendedor no ve los ingresos de toda la tienda: en su lugar ve lo que él vendió hoy (para su corte de caja).
+$es_admin = $_SESSION['rol'] === 'admin';
+if (!$es_admin) {
+    $mis_ventas_hoy = mysqli_fetch_assoc(mysqli_query($conn,
+        "SELECT COUNT(*) AS num, COALESCE(SUM(total), 0) AS total,
+                COALESCE(SUM(IF(metodo_pago = 'efectivo', total, 0)), 0) AS efectivo
+         FROM ventas
+         WHERE estado = 'completada' AND usuario_id = " . (int)$_SESSION['id_usuario'] . " AND DATE(fecha_venta) = CURDATE()"));
+}
+
 $pendientes_pago = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT COUNT(*) AS num, COALESCE(SUM(total), 0) AS total FROM pedidos
      WHERE estado_pago = 'pendiente' AND estado_pedido <> 'cancelado'"));
@@ -49,6 +59,17 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-xl">
         <div class="kpi destacado">
+            <?php if (!$es_admin): ?>
+            <div class="kpi-icono"><i class="fa-solid fa-cash-register"></i></div>
+            <div>
+                <div class="kpi-label">Tus ventas de hoy</div>
+                <div class="kpi-valor">$<?= number_format($mis_ventas_hoy['total'], 2) ?></div>
+                <div class="kpi-nota">
+                    <?= (int)$mis_ventas_hoy['num'] ?> venta<?= $mis_ventas_hoy['num'] == 1 ? '' : 's' ?>
+                    · $<?= number_format($mis_ventas_hoy['efectivo'], 2) ?> en efectivo
+                </div>
+            </div>
+            <?php else: ?>
             <div class="kpi-icono"><i class="fa-solid fa-sack-dollar"></i></div>
             <div>
                 <div class="kpi-label">Ingresos</div>
@@ -61,6 +82,7 @@ $filas_ultimas_ventas = mysqli_fetch_all($ultimas_ventas, MYSQLI_ASSOC);
                 </div>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="col-md-6 col-xl">

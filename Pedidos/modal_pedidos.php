@@ -28,6 +28,11 @@ $estilo_pago = [
     'reembolsado' => ['neutro', 'fa-rotate-left',    'Reembolsado'],
 ];
 ?>
+<style>
+/* Pedidos grandes: solo 2 renglones de productos (la lista completa al pasar el mouse o en "Ver pedido"). */
+.celda-productos { min-width:240px; max-width:340px; }
+.productos-resumen { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+</style>
 <div class="modulo-cab compacto">
     <div class="modulo-icono"><i class="fa-solid fa-truck-fast"></i></div>
     <div>
@@ -84,8 +89,8 @@ $estilo_pago = [
         <?= date('d/m/Y', strtotime($fila['fecha_pedido'])) ?>
         <div class="small text-muted"><?= date('h:i A', strtotime($fila['fecha_pedido'])) ?></div>
     </td>
-    <td class="small" style="max-width:280px">
-        <?= htmlspecialchars($fila['productos'] ?? '—') ?>
+    <td class="small celda-productos">
+        <div class="productos-resumen" title="<?= htmlspecialchars($fila['productos'] ?? '') ?>"><?= htmlspecialchars($fila['productos'] ?? '—') ?></div>
         <div class="text-muted"><?= (int)$fila['total_piezas'] ?> pieza<?= $fila['total_piezas'] == 1 ? '' : 's' ?></div>
     </td>
     <td class="fw-semibold">$<?= number_format($fila['total'], 2) ?></td>
