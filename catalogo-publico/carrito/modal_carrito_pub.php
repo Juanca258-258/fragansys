@@ -264,6 +264,46 @@ if (!isset($datosCarrito)) {
                             <label class="form-label small text-muted" id="etiquetaPassword">Contraseña *</label>
                             <input type="password" name="password" id="checkoutPassword" class="form-control" minlength="6">
                             <div class="form-text" id="ayudaPassword"></div>
+                            <div class="text-end mt-1 d-none" id="filaOlvidePassword">
+                                <a href="#" class="small text-gold text-decoration-none" onclick="iniciarRecuperacion(event)">¿Olvidaste tu contraseña?</a>
+                            </div>
+                        </div>
+
+                        <!-- Recuperar contraseña sin salir del checkout (los campos no llevan name: no viajan con el pedido) -->
+                        <div id="bloqueRecuperar" class="mb-3 d-none">
+                            <div class="border rounded-3 p-3 bg-light">
+                                <div class="fw-bold text-brown mb-2">Cambiar contraseña</div>
+                                <div id="alertaRecuperarCheckout" class="alert small py-2 d-none" role="alert"></div>
+
+                                <div id="recuperarPaso1">
+                                    <p class="small text-muted mb-2">Te enviaremos un código de 6 dígitos al correo de arriba.</p>
+                                    <button type="button" id="btnEnviarCodigoCheckout" class="btn btn-dark btn-sm rounded-pill px-3" style="background-color: #4a3320; border: none;" onclick="enviarCodigoCheckout(this)">
+                                        Enviar código
+                                    </button>
+                                </div>
+
+                                <div id="recuperarPaso2" class="d-none">
+                                    <div class="mb-2">
+                                        <label class="form-label small text-muted">Código recibido *</label>
+                                        <input type="text" id="recCodigoCheckout" class="form-control text-center" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="letter-spacing: 6px;">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small text-muted">Nueva contraseña *</label>
+                                        <input type="password" id="recNuevaCheckout" class="form-control" minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small text-muted">Confirma la nueva contraseña *</label>
+                                        <input type="password" id="recConfirmarCheckout" class="form-control" minlength="6" autocomplete="new-password">
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <a href="#" class="small text-gold text-decoration-none" onclick="event.preventDefault(); enviarCodigoCheckout(this)">Enviar otro código</a>
+                                    </div>
+                                </div>
+
+                                <div class="text-end mt-2">
+                                    <a href="#" class="small text-muted text-decoration-none" onclick="cancelarRecuperacion(event)">Ya la recordé</a>
+                                </div>
+                            </div>
                         </div>
                         <div id="campoConfirmarPassword" class="mb-3 d-none">
                             <label class="form-label small text-muted">Confirma tu contraseña *</label>

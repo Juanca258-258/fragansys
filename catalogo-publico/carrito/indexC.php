@@ -139,6 +139,105 @@ require_once __DIR__ . '/back_carrito_pub.php';
             document.getElementById('bloqueConfirmacion').classList.add('d-none');
             ['campoNombre', 'campoTelefono', 'campoDireccion', 'campoPassword', 'campoConfirmarPassword']
                 .forEach(id => mostrarCampo(id, false));
+            document.getElementById('filaOlvidePassword').classList.add('d-none');
+            cerrarRecuperacion();
+        }
+
+        // ===== Recuperar contraseña dentro del checkout =====
+        // Usa las mismas acciones que la pantalla de inicio de sesión (sesion-cliente/act_login_cliente.php).
+        function avisoRecuperarCheckout(tipo, texto) {
+            const caja = document.getElementById('alertaRecuperarCheckout');
+            caja.className = 'alert small py-2 alert-' + tipo;
+            caja.textContent = texto;
+        }
+
+        function llamarRecuperacion(accion, datos) {
+            datos.append('accion', accion);
+            return fetch('../sesion-cliente/act_login_cliente.php', { method: 'POST', body: datos })
+                .then(res => res.json())
+                .catch(() => ({ status: 'error', message: 'Ocurrió un error. Intenta de nuevo.' }));
+        }
+
+        function cerrarRecuperacion() {
+            document.getElementById('bloqueRecuperar').classList.add('d-none');
+            document.getElementById('btnConfirmarPedido').classList.remove('d-none');
+            document.getElementById('alertaRecuperarCheckout').className = 'alert small py-2 d-none';
+            document.getElementById('recuperarPaso1').classList.remove('d-none');
+            document.getElementById('recuperarPaso2').classList.add('d-none');
+            ['recCodigoCheckout', 'recNuevaCheckout', 'recConfirmarCheckout'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = '';
+                el.required = false;
+            });
+        }
+
+        function iniciarRecuperacion(e) {
+            e.preventDefault();
+            pasoCheckout = 'recuperar';
+            mostrarCampo('campoPassword', false);
+            document.getElementById('bloqueRecuperar').classList.remove('d-none');
+            document.getElementById('btnConfirmarPedido').classList.add('d-none');
+        }
+
+        function cancelarRecuperacion(e) {
+            if (e) e.preventDefault();
+            cerrarRecuperacion();
+            pasoCheckout = 'password';
+            mostrarCampo('campoPassword', true);
+            document.getElementById('btnConfirmarPedido').classList.remove('d-none');
+            document.getElementById('btnConfirmarPedido').textContent = 'Continuar';
+            document.getElementById('checkoutPassword').focus();
+        }
+
+        function enviarCodigoCheckout(btn) {
+            const textoOriginal = btn.innerHTML;
+            btn.classList.add('disabled');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+            const datos = new FormData();
+            datos.append('correo', document.getElementById('checkoutCorreo').value.trim());
+            llamarRecuperacion('recuperar_enviar_codigo', datos).then(data => {
+                btn.classList.remove('disabled');
+                btn.innerHTML = textoOriginal;
+                avisoRecuperarCheckout(data.status === 'success' ? 'success' : 'danger', data.message);
+                if (data.status === 'success') {
+                    document.getElementById('recuperarPaso1').classList.add('d-none');
+                    document.getElementById('recuperarPaso2').classList.remove('d-none');
+                    ['recCodigoCheckout', 'recNuevaCheckout', 'recConfirmarCheckout']
+                        .forEach(id => document.getElementById(id).required = true);
+                    const btnPedido = document.getElementById('btnConfirmarPedido');
+                    btnPedido.textContent = 'Guardar y continuar';
+                    btnPedido.classList.remove('d-none');
+                    document.getElementById('recCodigoCheckout').focus();
+                }
+            });
+        }
+
+        // Guarda la nueva contraseña y, si todo sale bien, la usa para verificar al cliente y seguir con el pedido
+        function guardarPasswordCheckout(btn) {
+            const nueva = document.getElementById('recNuevaCheckout').value;
+            const datos = new FormData();
+            datos.append('codigo', document.getElementById('recCodigoCheckout').value);
+            datos.append('password', nueva);
+            datos.append('password_confirmar', document.getElementById('recConfirmarCheckout').value);
+
+            llamarRecuperacion('recuperar_cambiar_password', datos).then(data => {
+                if (data.status !== 'success') {
+                    btn.disabled = false;
+                    avisoRecuperarCheckout('danger', data.message);
+                    if (data.reiniciar) {
+                        document.getElementById('recuperarPaso1').classList.remove('d-none');
+                        document.getElementById('recuperarPaso2').classList.add('d-none');
+                        btn.classList.add('d-none');
+                    }
+                    return;
+                }
+                cerrarRecuperacion();
+                mostrarCampo('campoPassword', true); // por si la verificación fallara, que pueda escribirla
+                document.getElementById('checkoutPassword').value = nueva;
+                document.getElementById('filaOlvidePassword').classList.add('d-none');
+                pasoCheckout = 'password';
+                verificarCliente(btn);
+            });
         }
 
         function cambiarCorreo() {
@@ -194,6 +293,7 @@ require_once __DIR__ . '/back_carrito_pub.php';
                     }
                     mostrarCampo('campoPassword', true);
                     mostrarCampo('campoConfirmarPassword', data.sin_password);
+                    document.getElementById('filaOlvidePassword').classList.toggle('d-none', data.sin_password);
                     btn.textContent = 'Continuar';
                 } else {
                     pasoCheckout = 'confirmar';
@@ -248,6 +348,10 @@ require_once __DIR__ . '/back_carrito_pub.php';
             }
             if (pasoCheckout === 'password') {
                 verificarCliente(btn);
+                return;
+            }
+            if (pasoCheckout === 'recuperar') {
+                guardarPasswordCheckout(btn);
                 return;
             }
 
