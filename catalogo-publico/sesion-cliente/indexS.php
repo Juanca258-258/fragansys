@@ -108,6 +108,89 @@ if (clienteSesionActiva()) {
                 btn.innerHTML = 'Iniciar Sesión';
             });
         });
+
+        // ===== Recuperar contraseña =====
+        const modalRecuperar   = document.getElementById('modalRecuperarPassword');
+        const alertaRecuperar  = document.getElementById('alertaRecuperar');
+        const formRecCorreo    = document.getElementById('formRecuperarCorreo');
+        const formRecPassword  = document.getElementById('formRecuperarPassword');
+
+        function avisoRecuperar(tipo, texto) {
+            alertaRecuperar.className = 'alert small alert-' + tipo;
+            alertaRecuperar.textContent = texto;
+        }
+
+        function mostrarPasoRecuperar(paso) {
+            formRecCorreo.classList.toggle('d-none', paso !== 1);
+            formRecPassword.classList.toggle('d-none', paso !== 2);
+        }
+
+        function llamarRecuperar(accion, datos) {
+            datos.append('accion', accion);
+            return fetch('act_login_cliente.php', { method: 'POST', body: datos }).then(r => r.json());
+        }
+
+        function enviarCodigo(btn) {
+            const textoOriginal = btn.innerHTML;
+            btn.classList.add('disabled');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+            const datos = new FormData();
+            datos.append('correo', document.getElementById('recuperarCorreo').value.trim());
+            return llamarRecuperar('recuperar_enviar_codigo', datos)
+                .then(data => {
+                    avisoRecuperar(data.status === 'success' ? 'success' : 'danger', data.message);
+                    if (data.status === 'success') {
+                        mostrarPasoRecuperar(2);
+                        document.getElementById('recuperarCodigo').focus();
+                    }
+                })
+                .catch(() => avisoRecuperar('danger', 'Ocurrió un error. Intenta de nuevo.'))
+                .finally(() => { btn.classList.remove('disabled'); btn.innerHTML = textoOriginal; });
+        }
+
+        // Al abrir el modal se empieza desde el paso 1, con el correo que ya se haya escrito en el login
+        modalRecuperar.addEventListener('show.bs.modal', function () {
+            alertaRecuperar.className = 'alert small d-none';
+            formRecCorreo.reset();
+            formRecPassword.reset();
+            document.getElementById('recuperarCorreo').value = document.getElementById('loginCorreo').value.trim();
+            mostrarPasoRecuperar(1);
+        });
+
+        formRecCorreo.addEventListener('submit', function (e) {
+            e.preventDefault();
+            enviarCodigo(document.getElementById('btnRecuperarCorreo'));
+        });
+
+        document.getElementById('lnkReenviarCodigo').addEventListener('click', function (e) {
+            e.preventDefault();
+            enviarCodigo(this);
+        });
+
+        formRecPassword.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnRecuperarPassword');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+
+            llamarRecuperar('recuperar_cambiar_password', new FormData(this))
+                .then(data => {
+                    if (data.status === 'success') {
+                        bootstrap.Modal.getInstance(modalRecuperar).hide();
+                        document.getElementById('loginCorreo').value = data.correo;
+                        document.getElementById('loginPassword').value = '';
+                        const alerta = document.getElementById('alertaLoginCliente');
+                        alerta.className = 'alert alert-success small';
+                        alerta.textContent = data.message;
+                        document.getElementById('loginPassword').focus();
+                    } else {
+                        avisoRecuperar('danger', data.message);
+                        if (data.reiniciar) mostrarPasoRecuperar(1);
+                    }
+                })
+                .catch(() => avisoRecuperar('danger', 'Ocurrió un error. Intenta de nuevo.'))
+                .finally(() => { btn.disabled = false; btn.innerHTML = 'Guardar nueva contraseña'; });
+        });
     </script>
 </body>
 </html>

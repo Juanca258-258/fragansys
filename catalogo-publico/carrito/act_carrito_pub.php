@@ -307,6 +307,14 @@ if ($accion === 'actualizar') {
                 unset($_SESSION['checkout_cliente_id']);
                 // Permite pagar este pedido desde este navegador aunque el cliente no haya iniciado sesión
                 $_SESSION['pedidos_por_pagar'][] = (int)$pedidoId;
+                // El cliente ya se identificó con su contraseña (o la acaba de crear): se deja su sesión
+                // iniciada para que desde la página de pago pueda ir directo a "Mis pedidos".
+                if (!$clienteSesionId) {
+                    session_regenerate_id(true);
+                    $_SESSION['cliente_id']     = (int)$clienteId;
+                    $_SESSION['cliente_nombre'] = $nombre;
+                    $_SESSION['cliente_correo'] = $correo;
+                }
                 $respuesta['status']    = 'success';
                 $respuesta['message']   = 'Tu pedido #' . $pedidoId . ' fue registrado.';
                 $respuesta['pedido_id'] = $pedidoId;

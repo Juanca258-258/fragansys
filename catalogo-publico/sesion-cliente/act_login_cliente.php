@@ -11,6 +11,14 @@ if ($accion === 'iniciar_sesion') {
     $password = isset($_POST['password']) ? $_POST['password'] : '';
 
     $respuesta = validarLoginCliente($conn, $correo, $password);
+} elseif ($accion === 'recuperar_enviar_codigo') {
+    $correo = isset($_POST['correo']) ? trim($_POST['correo']) : '';
+    $respuesta = solicitarCodigoRecuperacion($conn, $correo);
+} elseif ($accion === 'recuperar_cambiar_password') {
+    $codigo    = isset($_POST['codigo']) ? $_POST['codigo'] : '';
+    $nueva     = isset($_POST['password']) ? $_POST['password'] : '';
+    $confirmar = isset($_POST['password_confirmar']) ? $_POST['password_confirmar'] : '';
+    $respuesta = cambiarPasswordConCodigo($conn, $codigo, $nueva, $confirmar);
 } elseif ($accion === 'cerrar_sesion') {
     cerrarSesionCliente();
     $respuesta['status']  = 'success';

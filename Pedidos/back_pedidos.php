@@ -113,9 +113,13 @@ if ($accion == "reembolsar") {
     registrar_movimiento($conn, 'Pedidos', 'Reembolso',
         "Pedido #$id reembolsado en PayPal por $" . number_format($pedido['total'], 2) . " (reembolso {$datos['reembolso_id']})");
 
-    echo json_encode(['ok' => true, 'mensaje' => $resultado === 'pendiente'
-        ? 'PayPal aceptó el reembolso y lo está procesando; el cliente lo recibirá en unos minutos.'
-        : 'Se devolvieron $' . number_format($pedido['total'], 2) . ' al cliente en PayPal.']);
+    // Primero se contesta al administrador y después se avisa al cliente por correo (tarda unos segundos).
+    // Si el correo falla, el reembolso ya quedó hecho igual.
+    responder_y_continuar(json_encode(['ok' => true, 'mensaje' => $resultado === 'pendiente'
+        ? 'PayPal aceptó el reembolso y lo está procesando; el cliente lo recibirá en unos minutos. Se le avisará por correo.'
+        : 'Se devolvieron $' . number_format($pedido['total'], 2) . ' al cliente en PayPal. Se le avisará por correo.']));
+    require_once __DIR__ . '/../correos/correos.php';
+    correo_pedido_reembolsado($conn, $id, $resultado === 'pendiente');
     exit;
 }
 

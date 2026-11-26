@@ -33,7 +33,7 @@ if (!function_exists('validarLoginCliente')) {
             </div>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-2">
             <label for="loginPassword" class="form-label small text-uppercase text-muted fw-bold" style="letter-spacing: 1px;">Contraseña</label>
             <div class="input-group">
                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-gold"></i></span>
@@ -42,6 +42,12 @@ if (!function_exists('validarLoginCliente')) {
                     <i class="bi bi-eye text-muted"></i>
                 </button>
             </div>
+        </div>
+
+        <div class="text-end mb-4">
+            <a href="#" class="small text-gold text-decoration-none" data-bs-toggle="modal" data-bs-target="#modalRecuperarPassword">
+                ¿Olvidaste tu contraseña?
+            </a>
         </div>
 
         <button type="submit" id="btnLoginCliente" class="btn btn-dark w-100 rounded-pill py-3 text-uppercase font-serif shadow-sm" style="font-size: 0.85rem; letter-spacing: 1px; background-color: #4a3320; border: none;">

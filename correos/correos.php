@@ -254,6 +254,41 @@ function correo_pedido_entregado($conn, $pedido_id) {
     }
 }
 
+// Al cliente: se le devolvió en PayPal el dinero de un pedido cancelado.
+// $en_proceso = true cuando PayPal aceptó el reembolso pero aún lo está procesando.
+function correo_pedido_reembolsado($conn, $pedido_id, $en_proceso = false) {
+    try {
+        $pedido = correo_datos_pedido($conn, $pedido_id);
+        if (!$pedido) {
+            return false;
+        }
+        $negocio = obtener_config($conn)['negocio_nombre'];
+        $base    = correo_url_base();
+
+        $aviso = $en_proceso
+            ? 'PayPal ya está procesando la devolución; en unos minutos verás el dinero de regreso.'
+            : 'El dinero ya fue devuelto a la cuenta o tarjeta con la que pagaste.';
+
+        $contenido = '<p>Hola ' . correo_e($pedido['cliente_nombre']) . ',</p>'
+            . '<p>Hicimos el reembolso de tu <strong>pedido #' . (int)$pedido['id'] . '</strong>, que fue cancelado.</p>'
+            . '<p style="background:#fbf8f4;border-left:3px solid #b58c5a;padding:10px 14px;font-size:14px;">'
+            . '<strong>Monto reembolsado:</strong> ' . correo_dinero($pedido['total']) . ' MXN<br>'
+            . (!empty($pedido['paypal_reembolso_id']) ? '<strong>Folio de PayPal:</strong> ' . correo_e($pedido['paypal_reembolso_id']) . '<br>' : '')
+            . correo_e($aviso) . '</p>'
+            . '<p style="font-size:13px;color:#777;">Si pagaste con tarjeta, tu banco puede tardar algunos días hábiles en reflejarlo en tu estado de cuenta.</p>'
+            . correo_tabla_productos($pedido)
+            . '<p style="font-size:14px;color:#555;">Lamentamos que no se haya concretado tu compra. Esperamos verte pronto.</p>';
+
+        $html = correo_plantilla($negocio, 'Tu reembolso está hecho', $contenido,
+                                 'Ver mis pedidos', $base ? $base . '/catalogo-publico/sesion-cliente/indexP.php' : '');
+        return correo_enviar($pedido['cliente_correo'], $pedido['cliente_nombre'],
+                             "Reembolso de tu pedido #{$pedido['id']}", $html);
+    } catch (Throwable $e) {
+        error_log("Correo de reembolso del pedido $pedido_id: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Al administrador: un pedido del catálogo ya quedó pagado y hay que prepararlo.
 function correo_admin_nuevo_pedido($conn, $pedido_id) {
     try {
